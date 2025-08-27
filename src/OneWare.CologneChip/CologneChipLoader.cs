@@ -111,8 +111,19 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         
         var state = GetProgrammerState(properties);
         
+        var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
+        var bitStreamPath = "";
+        switch (toolchain)
+        {
+            case "p_r": 
+                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
+                break;
+            case "nextpnr":
+                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}.bit";
+                break;
+        }
+        
         List<string> fpgaArgs = [];
-        var bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
         
         switch (state)
         {
@@ -151,9 +162,24 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
                 throw new Exception("IllegalState");
         }
         
-        if (!useWsl) {
-        
-            await childProcessService.ExecuteShellAsync("openFPGALoader", fpgaArgs,
+        if (!useWsl)
+        {
+            // C:\Users\sebas\OneWareStudio\Packages\NativeTools\colognechip\cc-toolchain-win
+            var execPath = "";
+
+            switch (settingsService.GetSettingValue<string>(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey))
+            {
+                case "CologneChip":
+                    var path = settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
+                    execPath = $"{path}/bin/openFPGALoader/openFPGALoader";
+                    break;
+                default:
+                    execPath = "openFPGALoader";
+                    break;
+            }
+            
+            
+            await childProcessService.ExecuteShellAsync(execPath, fpgaArgs,
             outputDir, "Running OpenFPGALoader (Short-Term)...", AppState.Loading, true);
         }
         else

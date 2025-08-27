@@ -22,10 +22,13 @@ public sealed class CologneChipConstantService
     public static string CologneChipDefaultConstraintFile => "project.ccf";
 
     public const string ToolChainSettingsKey = "cologneChipToolchain";
-
     public static readonly string[] Toolchains = ["p_r", "nextpnr"];
-
     public const string ToolChainDefault = "nextpnr";
+    
+    public const string OpenFPGALoaderSourceSettingsKey = "cologneChipOpenFPGALoaderSource";
+    public const string YosysSourceSettingsKey = "cologneChipYosysSource";
+    public static readonly string[] BinarySources = ["CologneChip", "OSSCAD Suite"];
+    public const string OpenFPGALoaderSourceDefault = "CologneChip";
 
     public const string CcfTemplate = @"#
 # #####  Important ##### 

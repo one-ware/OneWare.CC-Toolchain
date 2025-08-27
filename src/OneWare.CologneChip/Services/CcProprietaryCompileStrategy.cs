@@ -15,6 +15,7 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
     private readonly IChildProcessService _childProcessService;
     private readonly ILogger _logger;
     private readonly IOutputService _outputService;
+    private readonly ISettingsService _settingsService;
     
     public CcProprietaryCompileStrategy()
     {
@@ -22,6 +23,7 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
         _childProcessService = ContainerLocator.Container.Resolve<IChildProcessService>();
         _logger = ContainerLocator.Container.Resolve<ILogger>();
         _outputService = ContainerLocator.Container.Resolve<IOutputService>();
+        _settingsService = ContainerLocator.Container.Resolve<ISettingsService>();
     }
     
     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
@@ -50,12 +52,12 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
             {
                 case "vhd":
                     _outputService.WriteLine("VHDL Synthesis...\n===============");
-                    yosysArguments = ["-q","-l ./../synth.log",  "-p", $"ghdl --warn-no-binding -C --ieee=synopsys ./../{top} -e {topName}; {yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
+                    yosysArguments = ["-q","-l ./synth.log",  "-p", $"ghdl --warn-no-binding -C --ieee=synopsys ./../{top} -e {topName}; {yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
                     includedExtensions = [];
                     break;
                 case "v": 
                     _outputService.WriteLine("Verilog Synthesis...\n==============");
-                    yosysArguments = ["-ql", "./../log/synth.log", "-p", $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
+                    yosysArguments = ["-ql", "./synth.log", "-p", $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
                     includedExtensions = [".v", ".sv"];
                     break;
             }
@@ -70,7 +72,20 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
                 StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) ?? []);
             yosysArguments.AddRange(includedFiles);
             
-            var (success, _) = await _childProcessService.ExecuteShellAsync("yosys", yosysArguments, $"{project.FullPath}/build",
+            var execPath = "";
+
+            switch (_settingsService.GetSettingValue<string>(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey))
+            {
+                case "CologneChip":
+                    var path = _settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
+                    execPath = $"{path}/bin/yosys/yosys";
+                    break;
+                default:
+                    execPath = "yosys";
+                    break;
+            }
+            
+            var (success, _) = await _childProcessService.ExecuteShellAsync(execPath, yosysArguments, $"{project.FullPath}/build",
                 "Running yosys...", AppState.Loading, true, x =>
                 {
                     if (x.StartsWith("Error:"))
@@ -140,5 +155,10 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
                 Brushes.Red);
         
         return success;
+    }
+
+    public Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    {
+        return Task.FromResult(true);
     }
 }

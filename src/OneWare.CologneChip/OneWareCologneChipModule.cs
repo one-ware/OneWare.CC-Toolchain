@@ -8,6 +8,7 @@ using OneWare.CologneChip.Helpers;
 using OneWare.CologneChip.Services;
 using OneWare.CologneChip.ViewModels;
 using OneWare.CologneChip.Views;
+using OneWare.Essentials.Helpers;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
 using OneWare.Essentials.ViewModels;
@@ -88,6 +89,12 @@ public class OneWareCologneChipModule : IModule
         settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.ToolChainSettingsKey,
             new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault, CologneChipConstantService.Toolchains));
         
+        settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.OpenFPGALoaderSourceSettingsKey,
+            new ComboBoxSetting("openFPGALoader Source", CologneChipConstantService.OpenFPGALoaderSourceDefault, CologneChipConstantService.BinarySources));
+        
+        settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.YosysSourceSettingsKey,
+            new ComboBoxSetting("Yosys Source", CologneChipConstantService.OpenFPGALoaderSourceDefault, CologneChipConstantService.BinarySources));
+        
         settingsService.GetSettingObservable<string>(CologneChipConstantService.CcPathSetting).Subscribe(x =>
         {
             if (string.IsNullOrEmpty(x)) return;
@@ -102,10 +109,19 @@ public class OneWareCologneChipModule : IModule
             var pr = Path.Combine(x, "bin/p_r");
             var openFpgaLoader = Path.Combine(x, "bin/openFPGALoader");
             
-            ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_yosys", yosys);
+            // ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_yosys", yosys);
             ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_p_r", pr);
-            ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_openFPGALoader", openFpgaLoader);
+            // ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_openFPGALoader", openFpgaLoader);
         });
+
+        var projectSettingsService = containerProvider.Resolve<IProjectSettingsService>();
+        projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
+            .WithSetting(new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault,
+                CologneChipConstantService.Toolchains))
+            .WithCategory("CologneChip")
+            .WithKey("CCP_Toolchain")
+            .Build());
+        
         
         containerProvider.Resolve<ISettingsService>().RegisterSetting("Tools", "CologneChip", 
             CologneChipConstantService.CologneChipSettingsIgnoreGuiKey, new CheckBoxSetting("Ignore UI for HardwarePin Mapping", false));
@@ -148,6 +164,15 @@ public class OneWareCologneChipModule : IModule
                                     await cologneChipService.PrAysnc(root, new FpgaModel(fpga!)); 
                                 }, () => fpga != null)
                             },
+                            new MenuItem()
+                            {
+                                Header = "Run Packing",
+                                Command = new AsyncRelayCommand(async () =>
+                                {
+                                    // await projectExplorerService.SaveOpenFilesForProjectAsync(root);
+                                    await cologneChipService.PackAysnc(root, new FpgaModel(fpga!)); 
+                                }, () => fpga != null)
+                            },
                         }
                     };
                 }));
@@ -158,7 +183,7 @@ public class OneWareCologneChipModule : IModule
     {
         if (!Directory.Exists(path)) return false;
         
-        if (!File.Exists(Path.Combine(path, "bin", "VERSION"))) return false;
+        if (!File.Exists(Path.Combine(path, "VERSION"))) return false;
         if (!Directory.Exists(Path.Combine(path, "bin", "yosys"))) return false;
         if (!Directory.Exists(Path.Combine(path, "bin", "p_r"))) return false;
         if (!Directory.Exists(Path.Combine(path, "bin", "openFPGALoader"))) return false;

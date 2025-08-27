@@ -43,6 +43,18 @@ public class CologneChipService(
         };
     }
     
+    public async Task<bool> PackAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    {
+        var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
+        return toolchain switch
+        {
+            "p_r" => await ContainerLocator.Container.Resolve<CcProprietaryCompileStrategy>().PackAsync(project, fpgaModel),
+            "nextpnr" => await ContainerLocator.Container.Resolve<CcNextpnrCompileStrategy>()
+                .PackAsync(project, fpgaModel),
+            _ => throw new Exception($"Unknown toolchain: {toolchain}")
+        };
+    }
+    
     public async Task CreateNetListJsonAsync(IProjectFile verilog)
     {
         await childProcessService.ExecuteShellAsync("yosys", [
@@ -133,6 +145,7 @@ public class CologneChipService(
         
         var success = await SynthAsync(project, fpga);
         success &= await PrAysnc(project, fpga);
+        success &= await PackAysnc(project, fpga);
         
         var endTime = DateTime.Now - start;
         if (success)
