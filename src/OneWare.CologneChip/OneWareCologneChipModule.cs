@@ -22,7 +22,8 @@ public class OneWareCologneChipModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
-        
+        containerRegistry.RegisterSingleton<CologneChipService>();
+        containerRegistry.RegisterSingleton<CcProprietaryCompileStrategy>();
     }
     
     public void OnInitialized(IContainerProvider containerProvider)
@@ -84,6 +85,9 @@ public class OneWareCologneChipModule : IModule
         settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.CcPathSetting, 
             new FolderPathSetting("CologneChip Toolchain Path", defaultCologneChipPath, null, null, IsCologneChipPathValid));
         
+        settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.ToolChainSettingsKey,
+            new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault, CologneChipConstantService.Toolchains));
+        
         settingsService.GetSettingObservable<string>(CologneChipConstantService.CcPathSetting).Subscribe(x =>
         {
             if (string.IsNullOrEmpty(x)) return;
@@ -141,7 +145,7 @@ public class OneWareCologneChipModule : IModule
                                 Command = new AsyncRelayCommand(async () =>
                                 {
                                     // await projectExplorerService.SaveOpenFilesForProjectAsync(root);
-                                    await cologneChipService.PRAysnc(root, new FpgaModel(fpga!));
+                                    await cologneChipService.PrAysnc(root, new FpgaModel(fpga!)); 
                                 }, () => fpga != null)
                             },
                         }

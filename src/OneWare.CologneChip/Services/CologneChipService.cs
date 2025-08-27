@@ -14,124 +14,33 @@ public class CologneChipService(
     IChildProcessService childProcessService,
     ILogger logger,
     IOutputService outputService,
-    IDockService dockService)
+    IDockService dockService,
+    ISettingsService settingsService)
 {
     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
-        try
+        var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
+        return toolchain switch
         {
-            var properties = FpgaSettingsParser.LoadSettings(project, fpgaModel.Fpga.Name);
-            var top = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
-            
-            var buildDir = Path.Combine(project.FullPath, "build");
-            Directory.CreateDirectory(buildDir);
-
-            dockService.Show<IOutputService>();
-            
-            var start = DateTime.Now;
-
-            var yosysSynthTool = properties.GetValueOrDefault("yosysToolchainYosysSynthTool") ??
-                                 throw new Exception("Yosys Tool not set!");
-            
-            var (topName, topLanguage) = (top.Split('.').First(), top.Split('.').Last());
-
-            List<string> yosysArguments = [];
-            List<string> includedExtensions = [];
-            
-            switch (topLanguage)
-            {
-                case "vhd":
-                    outputService.WriteLine("VHDL Synthesis...\n===============");
-                    yosysArguments = ["-q","-l ./../synth.log",  "-p", $"ghdl --warn-no-binding -C --ieee=synopsys ./../{top} -e {topName}; {yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
-                    includedExtensions = [];
-                    break;
-                case "v": 
-                    outputService.WriteLine("Verilog Synthesis...\n==============");
-                    yosysArguments = ["-ql", "./../log/synth.log", "-p", $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"];
-                    includedExtensions = [".v", ".sv"];
-                    break;
-            }
-            
-            var includedFiles = project.Files
-                .Where(x => includedExtensions.Contains(x.Extension))
-                .Where(x => !project.CompileExcluded.Contains(x))
-                .Where(x => !project.TestBenches.Contains(x))
-                .Select(x => $"./../{x.RelativePath}");
-            
-            yosysArguments.AddRange(properties.GetValueOrDefault("yosysToolchainYosysFlags")?.Split(' ',
-                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries) ?? []);
-            yosysArguments.AddRange(includedFiles);
-            
-            var (success, _) = await childProcessService.ExecuteShellAsync("yosys", yosysArguments, $"{project.FullPath}/build",
-                "Running yosys...", AppState.Loading, true, x =>
-                {
-                    if (x.StartsWith("Error:"))
-                    {
-                        logger.Error(x);
-                        return false;
-                    }
-
-                    outputService.WriteLine(x);
-                    return true;
-                });
-            
-            
-            if (!success) {
-                var ignoreSynthExitCode = ContainerLocator.Container.Resolve<ISettingsService>().GetSettingValue<bool>(CologneChipConstantService.CologneChipSettingsIgnoreSynthExitCode);
-                if (ignoreSynthExitCode)
-                {
-                    ContainerLocator.Container.Resolve<ILogger>().Warning("The synthesis was terminated with an exit code other than zero");
-                    ContainerLocator.Container.Resolve<ILogger>().Warning($"Setting '{CologneChipConstantService.CologneChipSettingsIgnoreSynthExitCode}' to true");
-                    ContainerLocator.Container.Resolve<ILogger>().Warning($"Because of this setting, the route and placing tool is started anyway");
-                    success = true;
-                } 
-            }
-            
-            
-            var compileTime = DateTime.Now - start;
-            if (success)
-                outputService.WriteLine(
-                    $"==================\n\nSynthesis finished after {(int)compileTime.TotalMinutes:D2}:{compileTime.Seconds:D2}\n");
-            else
-                outputService.WriteLine(
-                    $"==================\n\nSynthesis failed after {(int)compileTime.TotalMinutes:D2}:{compileTime.Seconds:D2}\n",
-                    Brushes.Red);
-
-            return success;
-        }
-        catch (Exception e)
-        {
-            logger.Error(e.Message, e);
-            return false;
-        }
+            "p_r" => await ContainerLocator.Container.Resolve<CcProprietaryCompileStrategy>()
+                .SynthAsync(project, fpgaModel),
+            "nextpnr" => await ContainerLocator.Container.Resolve<CcNextpnrCompileStrategy>()
+                .SynthAsync(project, fpgaModel),
+            _ => throw new Exception($"Unknown toolchain: {toolchain}")
+        };
     }
 
-    public async Task<bool> PRAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    public async Task<bool> PrAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
-        var start = DateTime.Now;
-        var top = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
-        var (topName, topLanguage) = (top.Split('.').First(), top.Split('.').Last());
-        var ccfFile = CologneChipSettingsHelper.GetConstraintFile(project);
-        
-        List<string> prArguments = ["-i", $"{topName}_synth.v", "-o", topName, $"-ccf ./../{ccfFile} -cCP"];
-        
-        var success = (await childProcessService.ExecuteShellAsync("p_r", prArguments,
-            $"{project.FullPath}/build", $"Running P_R...", AppState.Loading, true, null, s =>
-            {
-                Dispatcher.UIThread.Post(() => { outputService.WriteLine(s); });
-                return true;
-            })).success;
-        
-        var compileTime = DateTime.Now - start;
-        if (success)
-            outputService.WriteLine(
-                $"==================\n\nPlace and Route finished after {(int)compileTime.TotalMinutes:D2}:{compileTime.Seconds:D2}\n");
-        else
-            outputService.WriteLine(
-                $"==================\n\nPlace and Route failed after {(int)compileTime.TotalMinutes:D2}:{compileTime.Seconds:D2}\n",
-                Brushes.Red);
-        
-        return success;
+        var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
+        return toolchain switch
+        {
+            "p_r" => await ContainerLocator.Container.Resolve<CcProprietaryCompileStrategy>()
+                .PrAsync(project, fpgaModel),
+            "nextpnr" => await ContainerLocator.Container.Resolve<CcNextpnrCompileStrategy>()
+                .PrAsync(project, fpgaModel),
+            _ => throw new Exception($"Unknown toolchain: {toolchain}")
+        };
     }
     
     public async Task CreateNetListJsonAsync(IProjectFile verilog)
@@ -219,10 +128,11 @@ public class CologneChipService(
     public async Task<bool> CompileAsync(UniversalFpgaProjectRoot project, FpgaModel fpga)
     {
         var start = DateTime.Now;
-        outputService.WriteLine("Starting CC Toolchain...\n===============");
+        outputService.WriteLine($"Starting CC Toolchain... ({
+            settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey)})\n===============");
         
         var success = await SynthAsync(project, fpga);
-        success &= await PRAysnc(project, fpga);
+        success &= await PrAysnc(project, fpga);
         
         var endTime = DateTime.Now - start;
         if (success)

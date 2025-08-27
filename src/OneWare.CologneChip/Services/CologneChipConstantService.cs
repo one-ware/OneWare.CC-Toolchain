@@ -21,6 +21,12 @@ public sealed class CologneChipConstantService
     
     public static string CologneChipDefaultConstraintFile => "project.ccf";
 
+    public const string ToolChainSettingsKey = "cologneChipToolchain";
+
+    public static readonly string[] Toolchains = ["p_r", "nextpnr"];
+
+    public const string ToolChainDefault = "nextpnr";
+
     public const string CcfTemplate = @"#
 # #####  Important ##### 
 # Currently, the pin constraints must be added manually in this file
