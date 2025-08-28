@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using OneWare.CologneChip.Helpers;
 using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
+using OneWare.GhdlExtension.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
 using Prism.Ioc;
@@ -47,6 +48,8 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
 
             List<string> yosysArguments = [];
             List<string> includedExtensions = [];
+
+            var ghdlService = ContainerLocator.Container.Resolve<GhdlService>();
             
             switch (topLanguage)
             {
@@ -73,8 +76,9 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
             yosysArguments.AddRange(includedFiles);
             
             var execPath = "";
-
-            switch (_settingsService.GetSettingValue<string>(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey))
+            
+            switch (ContainerLocator.Container.Resolve<CcSettingsService>()
+                        .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project))
             {
                 case "CologneChip":
                     var path = _settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
@@ -84,6 +88,7 @@ public class CcProprietaryCompileStrategy : ICologneChipCompileStrategy
                     execPath = "yosys";
                     break;
             }
+            _logger.Log($"Yosys exec path: {execPath}");
             
             var (success, _) = await _childProcessService.ExecuteShellAsync(execPath, yosysArguments, $"{project.FullPath}/build",
                 "Running yosys...", AppState.Loading, true, x =>

@@ -74,7 +74,7 @@ public class CcNextpnrCompileStrategy : ICologneChipCompileStrategy
             yosysArguments.AddRange(includedFiles);
             
             var execPath = "";
-            switch (_settingsService.GetSettingValue<string>(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey))
+            switch (_settingsService.GetSettingValue<string>(CologneChipConstantService.YosysSourceSettingsKey))
             {
                 case "CologneChip":
                     var path = _settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);

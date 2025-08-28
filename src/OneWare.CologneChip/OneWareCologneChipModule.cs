@@ -25,6 +25,7 @@ public class OneWareCologneChipModule : IModule
     {
         containerRegistry.RegisterSingleton<CologneChipService>();
         containerRegistry.RegisterSingleton<CcProprietaryCompileStrategy>();
+        containerRegistry.RegisterSingleton<CcSettingsService>();
     }
     
     public void OnInitialized(IContainerProvider containerProvider)
@@ -116,12 +117,27 @@ public class OneWareCologneChipModule : IModule
 
         var projectSettingsService = containerProvider.Resolve<IProjectSettingsService>();
         projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
-            .WithSetting(new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault,
-                CologneChipConstantService.Toolchains))
+            .WithSetting(new ComboBoxSetting("Place & Route", CologneChipConstantService.ProjectOverrideValue,
+                CologneChipConstantService.BinarySourcesProject))
             .WithCategory("CologneChip")
-            .WithKey("CCP_Toolchain")
+            .WithKey(CologneChipConstantService.ToolChainSettingsKey)
             .Build());
         
+        projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
+            .WithSetting(new ComboBoxSetting("openFPGALoader Source",
+                CologneChipConstantService.ProjectOverrideValue,
+                CologneChipConstantService.BinarySourcesProject))
+            .WithCategory("CologneChip")
+            .WithKey(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey)
+            .Build());
+
+        projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
+            .WithSetting(new ComboBoxSetting("Yosys Source",
+                CologneChipConstantService.ProjectOverrideValue,
+                CologneChipConstantService.BinarySourcesProject))
+            .WithCategory("CologneChip")
+            .WithKey(CologneChipConstantService.YosysSourceSettingsKey)
+            .Build());
         
         containerProvider.Resolve<ISettingsService>().RegisterSetting("Tools", "CologneChip", 
             CologneChipConstantService.CologneChipSettingsIgnoreGuiKey, new CheckBoxSetting("Ignore UI for HardwarePin Mapping", false));
