@@ -19,6 +19,8 @@ public sealed class CologneChipConstantService
 
     public static string CologneChipSettingsUseWsl => "cologneChip_UseWSL";
     
+    public static string AutoDownloadBinariesKey  => "cologneChip_AutoDownloadBinaries";
+    
     public static string CologneChipDefaultConstraintFile => "project.ccf";
 
     public const string ToolChainSettingsKey = "cologneChipToolchain";

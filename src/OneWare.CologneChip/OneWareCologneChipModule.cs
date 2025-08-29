@@ -25,7 +25,11 @@ public class OneWareCologneChipModule : IModule
     {
         containerRegistry.RegisterSingleton<CologneChipService>();
         containerRegistry.RegisterSingleton<CcProprietaryCompileStrategy>();
+        containerRegistry.RegisterSingleton<CcNextpnrCompileStrategy>();
         containerRegistry.RegisterSingleton<CcSettingsService>();
+        containerRegistry.RegisterSingleton<CcUtilsService>();
+        
+        containerRegistry.RegisterSingleton<ICcCustomLogger, CcCustomLogger>();
     }
     
     public void OnInitialized(IContainerProvider containerProvider)
@@ -144,6 +148,9 @@ public class OneWareCologneChipModule : IModule
         
         containerProvider.Resolve<ISettingsService>().RegisterSetting("Tools", "CologneChip", 
             CologneChipConstantService.CologneChipSettingsIgnoreSynthExitCode, new CheckBoxSetting("Ignore an exit code not equal to 0 after the synthesis", false));
+        
+        containerProvider.Resolve<ISettingsService>().RegisterSetting("Tools", "CologneChip", 
+            CologneChipConstantService.AutoDownloadBinariesKey, new CheckBoxSetting("Auto Download Binaries", true));
 
         
         

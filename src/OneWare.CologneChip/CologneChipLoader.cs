@@ -4,6 +4,7 @@ using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
 using OneWare.UniversalFpgaProjectSystem.Services;
+using Prism.Ioc;
 using ILogger = OneWare.Essentials.Services.ILogger;
 
 namespace OneWare.CologneChip;
@@ -165,19 +166,7 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         if (!useWsl)
         {
             // C:\Users\sebas\OneWareStudio\Packages\NativeTools\colognechip\cc-toolchain-win
-            var execPath = "";
-
-            switch (settingsService.GetSettingValue<string>(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey))
-            {
-                case "CologneChip":
-                    var path = settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
-                    execPath = $"{path}/bin/openFPGALoader/openFPGALoader";
-                    break;
-                default:
-                    execPath = "openFPGALoader";
-                    break;
-            }
-            
+            var execPath = ResolveOpenFPGALoaderPath(project);
             
             await childProcessService.ExecuteShellAsync(execPath, fpgaArgs,
             outputDir, "Running OpenFPGALoader (Short-Term)...", AppState.Loading, true);
@@ -190,5 +179,20 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
             await childProcessService.ExecuteShellAsync("wsl", args,
                 outputDir, "Running openFPGALoader (Short-Term)...", AppState.Loading, true);
         }
+    }
+    
+    protected virtual string ResolveOpenFPGALoaderPath(UniversalFpgaProjectRoot project)
+    {
+        var src = ContainerLocator.Container.Resolve<CcSettingsService>()
+            .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project);
+
+        if (src == "CologneChip")
+        {
+            var path = settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
+            var p = $"{path}/bin/openFPGALoader/openFPGALoader";
+            logger.Log($"openFPGALoader exec path: {p}");
+            return p;
+        }
+        return "openFPGALoader";
     }
 }

@@ -88,13 +88,14 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
 
         var ccfFile = CologneChipSettingsHelper.GetConstraintFile(project);
         var (exe, args) = BuildPrCommand(topName, topLang, ccfFile);
-
-        var success = (await ExecWithOutput(
-            exe,
-            args,
-            $"{project.FullPath}/build",
-            "Running P_R...")).success;
-
+        
+        var success = (await Proc.ExecuteShellAsync(exe, args,
+            $"{project.FullPath}/build", $"Running P_R...", AppState.Loading, true, null, s =>
+            {
+                Dispatcher.UIThread.Post(() => { Out.WriteLine(s); });
+                return true;
+            })).success;
+        
         WritePhaseResult("Place and Route", start, success);
         return success;
     }
@@ -154,9 +155,9 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         return false;
     }
 
-    protected async Task<(bool success, int exitCode)> ExecWithOutput(
+    protected async Task<(bool success, string output)> ExecWithOutput(
         string exe,
-        IEnumerable<string> args,
+        IReadOnlyCollection<string> args,
         string cwd,
         string title)
     {
