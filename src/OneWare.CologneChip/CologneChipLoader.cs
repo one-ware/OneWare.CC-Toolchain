@@ -4,6 +4,7 @@ using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
 using OneWare.UniversalFpgaProjectSystem.Services;
+using Prism.Ioc;
 using ILogger = OneWare.Essentials.Services.ILogger;
 
 namespace OneWare.CologneChip;
@@ -111,8 +112,19 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         
         var state = GetProgrammerState(properties);
         
+        var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
+        var bitStreamPath = "";
+        switch (toolchain)
+        {
+            case "p_r": 
+                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
+                break;
+            case "nextpnr":
+                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}.bit";
+                break;
+        }
+        
         List<string> fpgaArgs = [];
-        var bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
         
         switch (state)
         {
@@ -151,9 +163,12 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
                 throw new Exception("IllegalState");
         }
         
-        if (!useWsl) {
-        
-            await childProcessService.ExecuteShellAsync("openFPGALoader", fpgaArgs,
+        if (!useWsl)
+        {
+            // C:\Users\sebas\OneWareStudio\Packages\NativeTools\colognechip\cc-toolchain-win
+            var execPath = ResolveOpenFPGALoaderPath(project);
+            
+            await childProcessService.ExecuteShellAsync(execPath, fpgaArgs,
             outputDir, "Running OpenFPGALoader (Short-Term)...", AppState.Loading, true);
         }
         else
@@ -164,5 +179,20 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
             await childProcessService.ExecuteShellAsync("wsl", args,
                 outputDir, "Running openFPGALoader (Short-Term)...", AppState.Loading, true);
         }
+    }
+    
+    protected virtual string ResolveOpenFPGALoaderPath(UniversalFpgaProjectRoot project)
+    {
+        var src = ContainerLocator.Container.Resolve<CcSettingsService>()
+            .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project);
+
+        if (src == "CologneChip")
+        {
+            var path = settingsService.GetSettingValue<string>(CologneChipConstantService.CcPathSetting);
+            var p = $"{path}/bin/openFPGALoader/openFPGALoader";
+            logger.Log($"openFPGALoader exec path: {p}");
+            return p;
+        }
+        return "openFPGALoader";
     }
 }
