@@ -1,33 +1,39 @@
-using Avalonia.Media;
-using Avalonia.Threading;
-using OneWare.CologneChip.Helpers;
-using OneWare.Essentials.Enums;
-using OneWare.Essentials.Services;
-using OneWare.GhdlExtension.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using OneWare.UniversalFpgaProjectSystem.Parser;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;
 
 public class CcProprietaryCompileStrategy : CcCompileStrategyBase
 {
-    protected override IEnumerable<string> BuildYosysArgs(string topName, string topLang, string topHeader, string yosysSynthTool)
+    protected override IEnumerable<string> BuildYosysArgs(
+        string topName, string topLang, string topHeader, string yosysSynthTool, string? preSynthVerilog)
     {
-        switch (topLang)
+        if (topLang == "vhd")
         {
-            case "vhd":
-                Out.WriteLine("VHDL Synthesis...\n===============");
-                return new[] { "-q", "-l", "./synth.log",
+            if (preSynthVerilog is not null)
+            {
+                Out.WriteLine("VHDL Synthesis (external GHDL → Verilog)...\n===============");
+                return new[] {
+                    "-ql", "./synth.log",
+                    "-p", $"read_verilog {preSynthVerilog}; " +
+                          $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"
+                };
+            }
+            else
+            {
+                Out.WriteLine("VHDL Synthesis (embedded GHDL)...\n===============");
+                return new[] {
+                    "-ql", "./synth.log",
                     "-p", $"ghdl --warn-no-binding -C --ieee=synopsys ./../{topHeader} -e {topName}; " +
-                          $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v" };
-            case "v":
-                Out.WriteLine("Verilog Synthesis...\n==============");
-                return new[] { "-ql", "./synth.log",
-                    "-p", $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v" };
-            default:
-                throw new NotSupportedException($"Unsupported top language: {topLang}");
+                          $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"
+                };
+            }
         }
+
+        Out.WriteLine("Verilog Synthesis...\n==============");
+        return new[] {
+            "-ql", "./synth.log",
+            "-p", $"{yosysSynthTool} -nomx8 -top {topName} -vlog {topName}_synth.v"
+        };
     }
 
     protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile)

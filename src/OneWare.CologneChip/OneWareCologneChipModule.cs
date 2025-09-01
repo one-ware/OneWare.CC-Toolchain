@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.Styling;
-using Avalonia.Media;
 using CommunityToolkit.Mvvm.Input;
 using OneWare.CologneChip.Helpers;
 using OneWare.CologneChip.Services;
@@ -122,7 +121,7 @@ public class OneWareCologneChipModule : IModule
         var projectSettingsService = containerProvider.Resolve<IProjectSettingsService>();
         projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
             .WithSetting(new ComboBoxSetting("Place & Route", CologneChipConstantService.ProjectOverrideValue,
-                CologneChipConstantService.BinarySourcesProject))
+                CologneChipConstantService.ToolchainsProject))
             .WithCategory("CologneChip")
             .WithKey(CologneChipConstantService.ToolChainSettingsKey)
             .Build());

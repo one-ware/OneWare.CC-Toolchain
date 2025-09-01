@@ -1,9 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using OneWare.Essentials.Services;
-using TextMateSharp.Themes;
 namespace OneWare.CologneChip.Services;
 
 public class CcCustomLogger(ILogger logger) : ICcCustomLogger

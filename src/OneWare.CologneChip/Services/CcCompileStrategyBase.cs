@@ -1,3 +1,7 @@
+using Avalonia.Styling;
+using OneWare.Essentials.Models;
+using OneWare.GhdlExtension.Services;
+
 namespace OneWare.CologneChip.Services;
 
 using Avalonia.Media;
@@ -26,8 +30,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         Settings = ContainerLocator.Container.Resolve<ISettingsService>();
     }
 
-    // === Template: Synth ===
-    public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         try
         {
@@ -40,8 +43,14 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
             Dock.Show<IOutputService>();
 
             var start = DateTime.Now;
+            
+            string? preSynthVerilog = null;
+            if (topLang == "vhd" && !UseEmbeddedGhdl(project))
+            {
+                preSynthVerilog = await PreSynthesizeVhdlToVerilogAsync(project, topName, topHeader);
+                if (preSynthVerilog is null) return false;
+            }
 
-            // files & flags
             var included = project.Files
                 .Where(f => GetIncludedExtensions(topLang).Contains(f.Extension))
                 .Where(f => !project.CompileExcluded.Contains(f))
@@ -54,7 +63,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
             var yosysSynthTool = properties.GetValueOrDefault("yosysToolchainYosysSynthTool")
                                  ?? throw new Exception("Yosys Tool not set!");
 
-            var yosysArgs = BuildYosysArgs(topName, topLang, topHeader, yosysSynthTool)
+            var yosysArgs = BuildYosysArgs(topName, topLang, topHeader, yosysSynthTool, preSynthVerilog)
                             .Concat(yosysFlags)
                             .Concat(included)
                             .ToList();
@@ -68,7 +77,6 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
                 "Running yosys...");
 
             success = MaybeIgnoreSynthExitCode(success);
-
             WritePhaseResult("Synthesis", start, success);
             return success;
         }
@@ -78,8 +86,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
             return false;
         }
     }
-
-    // === Template: P&R ===
+     
     public async Task<bool> PrAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var start = DateTime.Now;
@@ -100,7 +107,6 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         return success;
     }
 
-    // === Template: Pack ===
     public virtual async Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         // default: no-op/true
@@ -110,7 +116,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     // ---------- Hooks to override ----------
 
     protected abstract IEnumerable<string> BuildYosysArgs(
-        string topName, string topLang, string topHeader, string yosysSynthTool);
+        string topName, string topLang, string topHeader, string yosysSynthTool, string? preSynthVerilog);
 
     protected abstract (string exe, List<string> args) BuildPrCommand(
         string topName, string topLang, string ccfFile);
@@ -134,7 +140,16 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     }
 
     // ---------- Utilities ----------
-
+    
+    protected virtual bool UseEmbeddedGhdl(UniversalFpgaProjectRoot project)
+    {
+        var src = ContainerLocator.Container.Resolve<CcSettingsService>()
+            .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project);
+        return src == "CologneChip";
+    }
+    
+    protected virtual string ResolveGhdlPath() => "ghdl";
+    
     protected static (string name, string lang) SplitTop(string header)
     {
         var parts = header.Split('.');
@@ -173,7 +188,36 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
             return true;
         });
     }
+    
+    protected async Task<string?> PreSynthesizeVhdlToVerilogAsync(
+        UniversalFpgaProjectRoot project, string topName, string topHeader)
+    {
+        var buildDir = Path.Combine(project.FullPath, "build");
 
+        var vhdlFiles = project.Files
+            .Where(f => GetVhdlExtensions().Contains(f.Extension))
+            .Where(f => !project.CompileExcluded.Contains(f))
+            .Where(f => !project.TestBenches.Contains(f))
+            .Select(f => $"./../{f.RelativePath}")
+            .ToList();
+        
+        if (vhdlFiles.Count == 0)
+        {
+            Log.Error("No VHDL sources found for external GHDL synthesis.");
+            return null;
+        }
+        
+        if (project.TopEntity is IProjectFile projectFile)
+        {
+            await ContainerLocator.Container.Resolve<GhdlService>().SynthAsync(projectFile,"verilog", "build" );
+            return $"{topName}.v";
+        }
+        
+        throw new Exception($"Could not find matching operation for object type: {project.GetType().Name}");
+    }
+    
+    protected virtual IEnumerable<string> GetVhdlExtensions() => new[] { ".vhd", ".vhdl" };
+    
     protected void WritePhaseResult(string phase, DateTime start, bool success)
     {
         var t = DateTime.Now - start;

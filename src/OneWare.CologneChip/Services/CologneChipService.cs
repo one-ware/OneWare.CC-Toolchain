@@ -1,11 +1,8 @@
 using Avalonia.Media;
-using Avalonia.Threading;
 using OneWare.CologneChip.Helpers;
-using OneWare.Essentials.Enums;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using OneWare.UniversalFpgaProjectSystem.Parser;
 using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;

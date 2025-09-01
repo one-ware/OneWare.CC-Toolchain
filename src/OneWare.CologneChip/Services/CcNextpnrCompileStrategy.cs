@@ -11,21 +11,35 @@ namespace OneWare.CologneChip.Services;
 
 public class CcNextpnrCompileStrategy : CcCompileStrategyBase
 {
-    protected override IEnumerable<string> BuildYosysArgs(string topName, string topLang, string topHeader, string yosysSynthTool)
+    protected override IEnumerable<string> BuildYosysArgs(
+        string topName, string topLang, string topHeader, string yosysSynthTool, string? preSynthVerilog)
     {
-        switch (topLang)
+        if (topLang == "vhd")
         {
-            case "vhd":
-                Out.WriteLine("VHDL Synthesis...\n===============");
-                return new[] { "-q", "-l", "./synth.log",
+            if (preSynthVerilog is not null)
+            {
+                Out.WriteLine("VHDL Synthesis (external GHDL → Verilog)...\n===============");
+                return new[] {
+                    "-ql", "./synth.log",
+                    "-p", $"read_verilog {preSynthVerilog}; " +
+                          $"synth_gatemate -nomx8 -top {topName} -luttree -nomult; write_json {topName}.json;"
+                };
+            }
+            else
+            {
+                Out.WriteLine("VHDL Synthesis (embedded GHDL)...\n===============");
+                return new[] {
+                    "-ql", "./synth.log",
                     "-p", $"ghdl --warn-no-binding -C --ieee=synopsys ./../{topHeader} -e {topName}; " +
-                          $"{yosysSynthTool} -nomx8 -top {topName} -luttree -nomult; write_json {topName}.json;" };
-            case "v":
-                Out.WriteLine("Verilog Synthesis...\n==============");
-                return new[] { "-p", $"synth_gatemate -nomx8 -top {topName} -luttree -nomult; write_json {topName}.json;" };
-            default:
-                throw new NotSupportedException($"Unsupported top language: {topLang}");
+                          $"{yosysSynthTool} -nomx8 -top {topName} -luttree -nomult; write_json {topName}.json;"
+                };
+            }
         }
+
+        Out.WriteLine("Verilog Synthesis...\n==============");
+        return new[] {
+            "-p", $"synth_gatemate -nomx8 -top {topName} -luttree -nomult; write_json {topName}.json;"
+        };
     }
 
     protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile)

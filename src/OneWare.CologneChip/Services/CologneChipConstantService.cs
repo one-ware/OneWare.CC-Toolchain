@@ -25,7 +25,7 @@ public sealed class CologneChipConstantService
 
     public const string ToolChainSettingsKey = "cologneChipToolchain";
     public static readonly string[] Toolchains = ["p_r", "nextpnr"];
-    public static readonly string[] ToolchainsGlobal = ["p_r", "nextpnr", ProjectOverrideValue];
+    public static readonly string[] ToolchainsProject = ["p_r", "nextpnr", ProjectOverrideValue];
     public const string ToolChainDefault = "nextpnr";
     public const string ProjectOverrideValue = "Global";
     
