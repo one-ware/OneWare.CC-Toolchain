@@ -1,13 +1,9 @@
-using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using DynamicData.Binding;
 using OneWare.CologneChip.Services;
 using OneWare.Essentials.Controls;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.ViewModels;
 using OneWare.Settings.ViewModels;
-using OneWare.Settings.ViewModels.SettingTypes;
 using OneWare.UniversalFpgaProjectSystem.Fpga;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;

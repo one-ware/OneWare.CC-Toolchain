@@ -1,5 +1,11 @@
 # OneWare.CologneChip
 
+## Release 0.7.1
+- nextpnr support (OSSCAD Suite needed)
+- Global and project support for changing the toolchain 
+- Fixed some bugs 
+- Removed Release 0.7 from the oneware-extension.json (faulty version)
+
 ## Release 0.7
 - Update Dependencies for OW Studio Version 21.4.0
 

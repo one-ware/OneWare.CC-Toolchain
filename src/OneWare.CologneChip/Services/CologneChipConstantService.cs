@@ -19,7 +19,21 @@ public sealed class CologneChipConstantService
 
     public static string CologneChipSettingsUseWsl => "cologneChip_UseWSL";
     
+    public static string AutoDownloadBinariesKey  => "cologneChip_AutoDownloadBinaries";
+    
     public static string CologneChipDefaultConstraintFile => "project.ccf";
+
+    public const string ToolChainSettingsKey = "cologneChipToolchain";
+    public static readonly string[] Toolchains = ["p_r", "nextpnr"];
+    public static readonly string[] ToolchainsProject = ["p_r", "nextpnr", ProjectOverrideValue];
+    public const string ToolChainDefault = "nextpnr";
+    public const string ProjectOverrideValue = "Global";
+    
+    public const string OpenFPGALoaderSourceSettingsKey = "cologneChipOpenFPGALoaderSource";
+    public const string YosysSourceSettingsKey = "cologneChipYosysSource";
+    public static readonly string[] BinarySources = ["CologneChip", "OSSCAD Suite"];
+    public static readonly string[] BinarySourcesProject = ["CologneChip", "OSSCAD Suite", ProjectOverrideValue];
+    public const string OpenFPGALoaderSourceDefault = "CologneChip";
 
     public const string CcfTemplate = @"#
 # #####  Important ##### 
