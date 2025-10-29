@@ -24,6 +24,8 @@ public sealed class CologneChipConstantService
     public static string CologneChipDefaultConstraintFile => "project.ccf";
 
     public const string ToolChainSettingsKey = "cologneChipToolchain";
+    public const string DeviceFPGASettingsKey = "cologneChipDevice";
+    public const string DeviceFPGASettingsDefault = "CCGM1A1";
     public static readonly string[] Toolchains = ["p_r", "nextpnr"];
     public static readonly string[] ToolchainsProject = ["p_r", "nextpnr", ProjectOverrideValue];
     public const string ToolChainDefault = "nextpnr";
