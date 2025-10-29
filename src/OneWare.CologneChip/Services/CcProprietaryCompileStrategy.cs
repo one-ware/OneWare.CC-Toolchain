@@ -36,7 +36,7 @@ public class CcProprietaryCompileStrategy : CcCompileStrategyBase
         };
     }
 
-    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile)
+    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile, string device)
     {
         return ("p_r", new List<string> { "-i", $"{topName}_synth.v", "-o", topName, $"-ccf ./../{ccfFile} -cCP" });
     }

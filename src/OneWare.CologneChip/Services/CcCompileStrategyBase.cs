@@ -90,11 +90,14 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     public async Task<bool> PrAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var start = DateTime.Now;
+        var properties = FpgaSettingsParser.LoadSettings(project, fpgaModel.Fpga.Name);
+        var ccDevice = properties.GetValueOrDefault(CologneChipConstantService.DeviceFPGASettingsKey) 
+                       ?? CologneChipConstantService.DeviceFPGASettingsDefault;
         var topHeader  = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
         var (topName, topLang) = SplitTop(topHeader);
 
         var ccfFile = CologneChipSettingsHelper.GetConstraintFile(project);
-        var (exe, args) = BuildPrCommand(topName, topLang, ccfFile);
+        var (exe, args) = BuildPrCommand(topName, topLang, ccfFile, ccDevice);
         
         var success = (await Proc.ExecuteShellAsync(exe, args,
             $"{project.FullPath}/build", $"Running P_R...", AppState.Loading, true, null, s =>
@@ -119,7 +122,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         string topName, string topLang, string topHeader, string yosysSynthTool, string? preSynthVerilog);
 
     protected abstract (string exe, List<string> args) BuildPrCommand(
-        string topName, string topLang, string ccfFile);
+        string topName, string topLang, string ccfFile, string device);
 
     protected virtual IEnumerable<string> GetIncludedExtensions(string topLang) =>
         topLang == "v" ? new[] { ".v", ".sv" } : Array.Empty<string>();

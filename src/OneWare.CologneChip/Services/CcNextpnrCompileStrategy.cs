@@ -42,11 +42,11 @@ public class CcNextpnrCompileStrategy : CcCompileStrategyBase
         };
     }
 
-    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile)
+    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile, string device)
     {
         return ("nextpnr-himbaechel",
             new List<string> {
-                "--device=CCGM1A1",
+                $"--device={device}",
                 "--json", $"{topName}.json",
                 "-o", $"ccf=./../{ccfFile}",
                 "-o", $"out={topName}_impl.txt",
