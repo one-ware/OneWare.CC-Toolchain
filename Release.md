@@ -1,5 +1,8 @@
 # OneWare.CologneChip
 
+## Release 1.0.0
+- Support OWS 1.x.x
+
 ## Release 0.7.1
 - nextpnr support (OSSCAD Suite needed)
 - Global and project support for changing the toolchain 

@@ -83,6 +83,14 @@
           "target": "all"
         }
       ]
+    },
+    {
+      "version": "1.0.0",
+      "targets": [
+        {
+          "target": "all"
+        }
+      ]
     }
   ]
 }
