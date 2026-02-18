@@ -74,20 +74,17 @@ public class CologneChipSettingsHelper
         foreach (var projectFileString in root.GetFiles("*.ccf"))
         {
             var projectFile = root.GetFile(projectFileString)!;
-            
+            /*
             if (icon != null)
             {
-                /*
-                 TODO: Fix Iconoverlays!!
-                 
                 projectFile.IconOverlays.Remove(icon);
 
                 if (projectFile.RelativePath == ccfFile)
                 {
                     projectFile.IconOverlays.Add(icon);
                 }
-                */
             }
+            */
         }
     }
 

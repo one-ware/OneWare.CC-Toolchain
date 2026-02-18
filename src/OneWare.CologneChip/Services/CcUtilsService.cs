@@ -7,7 +7,7 @@ namespace OneWare.CologneChip.Services;
 
 public class CcUtilsService(IPackageService packageService, ISettingsService settingsService, IApplicationStateService applicationStateService, ICcCustomLogger logger)
 {
-    private async Task<(bool success, bool needsRestart)> InstallDependenciesAsync()
+    private Task<(bool success, bool needsRestart)> InstallDependenciesAsync()
 	{
 		ApplicationProcess checkProc = applicationStateService.AddState("Checking dependencies", AppState.Loading);
 		
@@ -56,7 +56,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 					{
 						
 
-						PackageVersion? installedVersion = dependencyModel.InstalledVersion;
+						PackageVersion? installedVersion = dependencyModel?.InstalledVersion;
 
 						if (installedVersion == packageVersion)
 						{
@@ -137,6 +137,6 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 
 		applicationStateService.RemoveState(checkProc);
 
-		return (globalSuccess, restartRequired);
+		return Task.FromResult((globalSuccess, restartRequired));
 	}
 }

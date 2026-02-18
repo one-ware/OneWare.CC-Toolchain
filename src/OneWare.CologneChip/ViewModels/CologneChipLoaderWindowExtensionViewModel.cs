@@ -27,8 +27,7 @@ public class CologneChipLoaderWindowExtensionViewModel : ObservableObject
         
         _fpga = fpgaService.FpgaPackages.FirstOrDefault(x => x.Name == projectRoot.Properties.GetString("Fpga"))?.LoadFpga();
         
-        // TODO: Prüfen ob das so richtig ist
-        IsVisible = projectRoot.Loader is "cologneChip";
+        IsVisible = projectRoot.Loader is "cologneChipLoader";
         IsEnabled = _fpga != null;
     }
 

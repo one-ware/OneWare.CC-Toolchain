@@ -5,10 +5,10 @@ namespace OneWare.CologneChip.Services;
 public sealed class CologneChipConstantService
 {
 
-    private static readonly Lazy<CologneChipConstantService> _instance = new Lazy<CologneChipConstantService>(() => new CologneChipConstantService());
+    private static readonly Lazy<CologneChipConstantService> Instance = new Lazy<CologneChipConstantService>(() => new CologneChipConstantService());
     private CologneChipConstantService() {}
 
-    public static CologneChipConstantService Instance => _instance.Value;
+    public static CologneChipConstantService GetInstance => Instance.Value;
 
     public static string CologneChipShortTermModeKey => "cologneChipProgrammerShortTermMode";
     public static string CologneChipLongTermModeKey => "cologneChipProgrammerLongTermMode";
@@ -24,18 +24,18 @@ public sealed class CologneChipConstantService
     public static string CologneChipDefaultConstraintFile => "project.ccf";
 
     public const string ToolChainSettingsKey = "cologneChipToolchain";
-    public const string DeviceFPGASettingsKey = "cologneChipDevice";
-    public const string DeviceFPGASettingsDefault = "CCGM1A1";
+    public const string DeviceFpgaSettingsKey = "cologneChipDevice";
+    public const string DeviceFpgaSettingsDefault = "CCGM1A1";
     public static readonly string[] Toolchains = ["p_r", "nextpnr"];
     public static readonly string[] ToolchainsProject = ["p_r", "nextpnr", ProjectOverrideValue];
     public const string ToolChainDefault = "nextpnr";
     public const string ProjectOverrideValue = "Global";
     
-    public const string OpenFPGALoaderSourceSettingsKey = "cologneChipOpenFPGALoaderSource";
+    public const string OpenFpgaLoaderSourceSettingsKey = "cologneChipOpenFPGALoaderSource";
     public const string YosysSourceSettingsKey = "cologneChipYosysSource";
     public static readonly string[] BinarySources = ["CologneChip", "OSSCAD Suite"];
     public static readonly string[] BinarySourcesProject = ["CologneChip", "OSSCAD Suite", ProjectOverrideValue];
-    public const string OpenFPGALoaderSourceDefault = "CologneChip";
+    public const string OpenFpgaLoaderSourceDefault = "CologneChip";
 
     public const string CcfTemplate = @"#
 # #####  Important ##### 

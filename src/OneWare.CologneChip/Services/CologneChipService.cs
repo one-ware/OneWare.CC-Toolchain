@@ -9,9 +9,7 @@ namespace OneWare.CologneChip.Services;
 
 public class CologneChipService(
     IChildProcessService childProcessService,
-    ILogger logger,
     IOutputService outputService,
-    IMainDockService dockService,
     ISettingsService settingsService)
 {
     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
@@ -27,7 +25,7 @@ public class CologneChipService(
         };
     }
 
-    public async Task<bool> PrAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    public async Task<bool> PrAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
         return toolchain switch
@@ -40,7 +38,7 @@ public class CologneChipService(
         };
     }
     
-    public async Task<bool> PackAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    public async Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
         return toolchain switch
@@ -141,8 +139,8 @@ public class CologneChipService(
             settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey)})\n===============");
         
         var success = await SynthAsync(project, fpga);
-        success &= await PrAysnc(project, fpga);
-        success &= await PackAysnc(project, fpga);
+        success &= await PrAsync(project, fpga);
+        success &= await PackAsync(project, fpga);
         
         var endTime = DateTime.Now - start;
         if (success)

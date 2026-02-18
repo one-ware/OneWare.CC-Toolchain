@@ -96,8 +96,8 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     {
         var start = DateTime.Now;
         var properties = FpgaSettingsParser.LoadSettings(project, fpgaModel.Fpga.Name);
-        var ccDevice = properties.GetValueOrDefault(CologneChipConstantService.DeviceFPGASettingsKey) 
-                       ?? CologneChipConstantService.DeviceFPGASettingsDefault;
+        var ccDevice = properties.GetValueOrDefault(CologneChipConstantService.DeviceFpgaSettingsKey) 
+                       ?? CologneChipConstantService.DeviceFpgaSettingsDefault;
         var topHeader  = project.TopEntity ?? throw new Exception("TopEntity not set!");
         var (topName, topLang) = SplitTop(topHeader);
 

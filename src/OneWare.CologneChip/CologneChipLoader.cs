@@ -11,9 +11,9 @@ namespace OneWare.CologneChip;
 public class CologneChipLoader(IChildProcessService childProcessService, ISettingsService settingsService, ILogger logger)
     : IFpgaLoader
 {
-    public string Name => "CologneChip";
+    public string Name => "CologneChip Loader";
     
-    public string Id => "cologneChip";
+    public string Id => "cologneChipLoader";
     
     private enum ProgrammerState
     {
@@ -118,10 +118,10 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         switch (toolchain)
         {
             case "p_r": 
-                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
+                 bitStreamPath = $"{CologneChipConstantService.GetInstance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
                 break;
             case "nextpnr":
-                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}.bit";
+                 bitStreamPath = $"{CologneChipConstantService.GetInstance.GetBuildPath(project.RelativePath)}{topName}.bit";
                 break;
         }
         
@@ -167,7 +167,7 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         if (!useWsl)
         {
             // C:\Users\sebas\OneWareStudio\Packages\NativeTools\colognechip\cc-toolchain-win
-            var execPath = ResolveOpenFPGALoaderPath(project);
+            var execPath = ResolveOpenFpgaLoaderPath(project);
             
             await childProcessService.ExecuteShellAsync(execPath, fpgaArgs,
             outputDir, "Running OpenFPGALoader (Short-Term)...", AppState.Loading, true);
@@ -182,7 +182,7 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         }
     }
     
-    protected virtual string ResolveOpenFPGALoaderPath(UniversalFpgaProjectRoot project)
+    protected virtual string ResolveOpenFpgaLoaderPath(UniversalFpgaProjectRoot project)
     {
         var src = ContainerLocator.Container.Resolve<CcSettingsService>()
             .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project);
