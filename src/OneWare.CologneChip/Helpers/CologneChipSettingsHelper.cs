@@ -2,14 +2,13 @@ using System.Collections.Specialized;
 using System.Text.Json.Nodes;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Styling;
 using OneWare.CologneChip.Services;
 using OneWare.Essentials.Models;
+using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Helpers;
 
@@ -72,8 +71,10 @@ public class CologneChipSettingsHelper
 
         var ccfFile = GetConstraintFile(root);
         
-        foreach (var projectFile in root.Files)
+        foreach (var projectFileString in root.GetFiles("*.ccf"))
         {
+            var projectFile = root.GetFile(projectFileString)!;
+            /*
             if (icon != null)
             {
                 projectFile.IconOverlays.Remove(icon);
@@ -83,6 +84,7 @@ public class CologneChipSettingsHelper
                     projectFile.IconOverlays.Add(icon);
                 }
             }
+            */
         }
     }
 
@@ -92,17 +94,17 @@ public class CologneChipSettingsHelper
             return Task.CompletedTask;
 
         var path = GetConstraintFile(universalFpgaProjectRoot);
-
-        // var icon = Application.Current!.FindResource(ThemeVariant.Dark, "VsImageLib.Test") as IImage;
-
-        foreach (var projectFile in file.Root.Files)
+        
+        
+        /*
+        foreach (var projectFile in file.Root.GetFiles("*.ccf"))
         {
             if (icon != null) projectFile.IconOverlays.Remove(icon);
         }
-
+        
         if (icon != null && !file.IconOverlays.Contains(icon))
             file.IconOverlays.Add(icon);
-
+        */
         if (file.RelativePath == path)
             return Task.CompletedTask;
 

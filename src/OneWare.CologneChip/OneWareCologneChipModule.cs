@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.Styling;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Helpers;
 using OneWare.CologneChip.Services;
 using OneWare.CologneChip.ViewModels;
@@ -10,31 +12,26 @@ using OneWare.CologneChip.Views;
 using OneWare.Essentials.Helpers;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
-using OneWare.Essentials.ViewModels;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using Prism.Ioc;
-using Prism.Modularity;
 using OneWare.UniversalFpgaProjectSystem.Services;
 
 namespace OneWare.CologneChip;
 
-public class OneWareCologneChipModule : IModule
+// ReSharper disable once UnusedType.Global
+public class OneWareCologneChipModule : OneWareModuleBase
 {
-    public void RegisterTypes(IContainerRegistry containerRegistry)
+    public override void RegisterServices(IServiceCollection containerRegistry)
     {
-        containerRegistry.RegisterSingleton<CologneChipService>();
-        containerRegistry.RegisterSingleton<CcProprietaryCompileStrategy>();
-        containerRegistry.RegisterSingleton<CcNextpnrCompileStrategy>();
-        containerRegistry.RegisterSingleton<CcSettingsService>();
-        containerRegistry.RegisterSingleton<CcUtilsService>();
-        
-        containerRegistry.RegisterSingleton<ICcCustomLogger, CcCustomLogger>();
+        containerRegistry.AddSingleton<CologneChipService>();
+        containerRegistry.AddSingleton<CcProprietaryCompileStrategy>();
+        containerRegistry.AddSingleton<CcNextpnrCompileStrategy>();
+        containerRegistry.AddSingleton<CcSettingsService>();
+        containerRegistry.AddSingleton<CcUtilsService>();
     }
     
-    public void OnInitialized(IContainerProvider containerProvider)
+    public override void Initialize(IServiceProvider containerProvider)
     {
         var settingsService = containerProvider.Resolve<ISettingsService>();
-        var projectExplorerService = containerProvider.Resolve<IProjectExplorerService>();
         var cologneChipService = containerProvider.Resolve<CologneChipService>();
         var fpgaService = containerProvider.Resolve<FpgaService>();
         
@@ -53,7 +50,7 @@ public class OneWareCologneChipModule : IModule
                 if (ccf.Root is UniversalFpgaProjectRoot universalFpgaProjectRoot)
                 {
                     if (CologneChipSettingsHelper.GetConstraintFile(universalFpgaProjectRoot) == ccf.RelativePath) {
-                        l.Add(new MenuItemViewModel("ccf")
+                        l.Add(new MenuItemModel("ccf")
                         {
                             Header = "Unset as Projects Constraint File",
                             Command = new AsyncRelayCommand(() => CologneChipSettingsHelper.UpdateProjectProperties(ccf)),
@@ -61,18 +58,32 @@ public class OneWareCologneChipModule : IModule
                     }
                     else
                     {
-                        l.Add(new MenuItemViewModel("ccf")
+                        l.Add(new MenuItemModel("ccf")
                         {
                             Header = "Set as Projects Constraint File",
                             Command = new AsyncRelayCommand(() => CologneChipSettingsHelper.UpdateProjectProperties(ccf)),
-                            
                         });
                     }
                 }
             }
         });
         
-        containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_DownloaderConfigurationExtension", new UiExtension(x =>
+        fpgaService.RegisterProjectEntryModification(x =>
+        {
+            if (x.Root is not UniversalFpgaProjectRoot universalFpgaProjectRoot) return;
+
+            if (x is IProjectFile file && CologneChipSettingsHelper.GetConstraintFile(universalFpgaProjectRoot) ==
+                file.RelativePath)
+            {
+                x.Icon?.AddOverlay("CologneChip", "ForkAwesome.Check");
+            }
+            else
+            {
+                x.Icon?.RemoveOverlay("CologneChip");
+            }
+        });
+        
+        containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_DownloaderConfigurationExtension", new OneWareUiExtension(x =>
         {
             if (x is not UniversalFpgaProjectRoot cm) return null;
             return new CologneChipLoaderWindowExtensionView()
@@ -84,6 +95,7 @@ public class OneWareCologneChipModule : IModule
         
         containerProvider.Resolve<FpgaService>().RegisterToolchain<CologneChipToolchain>();
         containerProvider.Resolve<FpgaService>().RegisterLoader<CologneChipLoader>();
+        
         containerProvider.Resolve<IProjectExplorerService>().Projects.CollectionChanged += CologneChipSettingsHelper.OnCollectionChanged;
         containerProvider.Resolve<IPackageService>().RegisterPackage(CologneChipConstantService.CologneChipPackage);
         
@@ -91,13 +103,13 @@ public class OneWareCologneChipModule : IModule
             new FolderPathSetting("CologneChip Toolchain Path", defaultCologneChipPath, null, null, IsCologneChipPathValid));
         
         settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.ToolChainSettingsKey,
-            new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault, CologneChipConstantService.Toolchains));
+            new ComboBoxSetting("Place & Route", CologneChipConstantService.ToolChainDefault, CologneChipConstantService.Toolchains.Cast<object>().ToArray()));
         
-        settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.OpenFPGALoaderSourceSettingsKey,
-            new ComboBoxSetting("openFPGALoader Source", CologneChipConstantService.OpenFPGALoaderSourceDefault, CologneChipConstantService.BinarySources));
+        settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.OpenFpgaLoaderSourceSettingsKey,
+            new ComboBoxSetting("openFPGALoader Source", CologneChipConstantService.OpenFpgaLoaderSourceDefault, CologneChipConstantService.BinarySources.Cast<object>().ToArray()));
         
         settingsService.RegisterSetting("Tools", "CologneChip", CologneChipConstantService.YosysSourceSettingsKey,
-            new ComboBoxSetting("Yosys Source", CologneChipConstantService.OpenFPGALoaderSourceDefault, CologneChipConstantService.BinarySources));
+            new ComboBoxSetting("Yosys Source", CologneChipConstantService.OpenFpgaLoaderSourceDefault, CologneChipConstantService.BinarySources.Cast<object>().ToArray()));
         
         settingsService.GetSettingObservable<string>(CologneChipConstantService.CcPathSetting).Subscribe(x =>
         {
@@ -109,19 +121,14 @@ public class OneWareCologneChipModule : IModule
                 return;
             }
             
-            var yosys = Path.Combine(x, "bin/yosys");
-            var pr = Path.Combine(x, "bin/p_r");
-            var openFpgaLoader = Path.Combine(x, "bin/openFPGALoader");
-            
-            // ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_yosys", yosys);
-            ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_p_r", pr);
-            // ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_openFPGALoader", openFpgaLoader);
+            ContainerLocator.Container.Resolve<IEnvironmentService>().SetPath("CC_p_r",  Path.Combine(x, "bin/p_r"));
+
         });
 
         var projectSettingsService = containerProvider.Resolve<IProjectSettingsService>();
         projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
             .WithSetting(new ComboBoxSetting("Place & Route", CologneChipConstantService.ProjectOverrideValue,
-                CologneChipConstantService.ToolchainsProject))
+                CologneChipConstantService.ToolchainsProject.Cast<object>().ToArray()))
             .WithCategory("CologneChip")
             .WithKey(CologneChipConstantService.ToolChainSettingsKey)
             .Build());
@@ -129,15 +136,15 @@ public class OneWareCologneChipModule : IModule
         projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
             .WithSetting(new ComboBoxSetting("openFPGALoader Source",
                 CologneChipConstantService.ProjectOverrideValue,
-                CologneChipConstantService.BinarySourcesProject))
+                CologneChipConstantService.BinarySourcesProject.Cast<object>().ToArray()))
             .WithCategory("CologneChip")
-            .WithKey(CologneChipConstantService.OpenFPGALoaderSourceSettingsKey)
+            .WithKey(CologneChipConstantService.OpenFpgaLoaderSourceSettingsKey)
             .Build());
 
         projectSettingsService.AddProjectSetting(new ProjectSettingBuilder()
             .WithSetting(new ComboBoxSetting("Yosys Source",
                 CologneChipConstantService.ProjectOverrideValue,
-                CologneChipConstantService.BinarySourcesProject))
+                CologneChipConstantService.BinarySourcesProject.Cast<object>().ToArray()))
             .WithCategory("CologneChip")
             .WithKey(CologneChipConstantService.YosysSourceSettingsKey)
             .Build());
@@ -150,14 +157,12 @@ public class OneWareCologneChipModule : IModule
         
         containerProvider.Resolve<ISettingsService>().RegisterSetting("Tools", "CologneChip", 
             CologneChipConstantService.AutoDownloadBinariesKey, new CheckBoxSetting("Auto Download Binaries", true));
-
-        
         
         containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_CompileMenuExtension",
-            new UiExtension(
+            new OneWareUiExtension(
                 x =>
                 {
-                    if (x is not UniversalFpgaProjectRoot { Toolchain: CologneChipToolchain } root) return null;
+                    if (x is not UniversalFpgaProjectRoot { Toolchain: "cologneChip" } root) return null;
 
                     var name = root.Properties["Fpga"]?.ToString();
                     var fpgaPackage = fpgaService.FpgaPackages.FirstOrDefault(obj => obj.Name == name);
@@ -173,7 +178,6 @@ public class OneWareCologneChipModule : IModule
                                 Header = "Run Synthesis",
                                 Command = new AsyncRelayCommand(async () =>
                                 {
-                                    // await projectExplorerService.SaveOpenFilesForProjectAsync(root);
                                     await cologneChipService.SynthAsync(root, new FpgaModel(fpga!));
                                 }, () => fpga != null)
                             },
@@ -182,8 +186,7 @@ public class OneWareCologneChipModule : IModule
                                 Header = "Run Place and Route",
                                 Command = new AsyncRelayCommand(async () =>
                                 {
-                                    // await projectExplorerService.SaveOpenFilesForProjectAsync(root);
-                                    await cologneChipService.PrAysnc(root, new FpgaModel(fpga!)); 
+                                    await cologneChipService.PrAsync(root, new FpgaModel(fpga!)); 
                                 }, () => fpga != null)
                             },
                             new MenuItem()
@@ -191,8 +194,7 @@ public class OneWareCologneChipModule : IModule
                                 Header = "Run Packing",
                                 Command = new AsyncRelayCommand(async () =>
                                 {
-                                    // await projectExplorerService.SaveOpenFilesForProjectAsync(root);
-                                    await cologneChipService.PackAysnc(root, new FpgaModel(fpga!)); 
+                                    await cologneChipService.PackAsync(root, new FpgaModel(fpga!)); 
                                 }, () => fpga != null)
                             },
                         }

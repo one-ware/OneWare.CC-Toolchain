@@ -5,7 +5,6 @@ using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;
 
@@ -42,11 +41,11 @@ public class CcNextpnrCompileStrategy : CcCompileStrategyBase
         };
     }
 
-    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile)
+    protected override (string exe, List<string> args) BuildPrCommand(string topName, string topLang, string ccfFile, string device)
     {
         return ("nextpnr-himbaechel",
             new List<string> {
-                "--device=CCGM1A1",
+                $"--device={device}",
                 "--json", $"{topName}.json",
                 "-o", $"ccf=./../{ccfFile}",
                 "-o", $"out={topName}_impl.txt",
@@ -57,7 +56,7 @@ public class CcNextpnrCompileStrategy : CcCompileStrategyBase
     public override async Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var start = DateTime.Now;
-        var (topName, _) = SplitTop(project.TopEntity?.Header ?? throw new Exception("TopEntity not set!"));
+        var (topName, _) = SplitTop(project.TopEntity ?? throw new Exception("TopEntity not set!"));
 
         var (success, _) = await ExecWithOutput(
             "gmpack",

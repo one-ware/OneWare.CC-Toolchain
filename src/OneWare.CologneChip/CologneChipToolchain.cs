@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Helpers;
 using OneWare.CologneChip.Services;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Services;
-using Prism.Ioc;
 
 
 namespace OneWare.CologneChip;
@@ -12,7 +12,9 @@ namespace OneWare.CologneChip;
 public class CologneChipToolchain(CologneChipService cologneChipService) : IFpgaToolchain
 {
 
-    public string Name => "CologneChip";
+    public string Name => "CologneChip Toolchain";
+    
+    public string Id => "cologneChipToolchain";
     
     private static string Pattern => @"NET\s+""(?<pinName>[^""]+)""\s+Loc\s+=\s+""(?<pinLocation>[^""]+)""(?:\s*\|\s*(?<constraints>[^;]*))?;";
 
@@ -22,7 +24,7 @@ public class CologneChipToolchain(CologneChipService cologneChipService) : IFpga
         var file = Directory.GetParent(project.ProjectFilePath)?.FullName + @"\" + CologneChipSettingsHelper.GetConstraintFile(project);
         
         File.WriteAllText(file, CologneChipConstantService.CcfTemplate);
-        project.ImportFile(file, false);
+        // project.ImportFile(file, false);
     }
     
     public void LoadConnections(UniversalFpgaProjectRoot project, FpgaModel fpga)

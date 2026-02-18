@@ -1,18 +1,19 @@
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Services;
 using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
 using OneWare.UniversalFpgaProjectSystem.Services;
-using Prism.Ioc;
-using ILogger = OneWare.Essentials.Services.ILogger;
 
 namespace OneWare.CologneChip;
 
 public class CologneChipLoader(IChildProcessService childProcessService, ISettingsService settingsService, ILogger logger)
     : IFpgaLoader
 {
-    public string Name => "CologneChip";
+    public string Name => "CologneChip Loader";
+    
+    public string Id => "cologneChipLoader";
     
     private enum ProgrammerState
     {
@@ -102,11 +103,11 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
     public async Task DownloadAsync(UniversalFpgaProjectRoot project)
     {
         
-        var top = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
+        var top = project.TopEntity ?? throw new Exception("TopEntity not set!");
         var topName = top.Split(".").First();
         var outputDir = project.FullPath;
         
-        var fpga = project.GetProjectProperty("Fpga");
+        var fpga = project.Properties.GetString("fpga");
         var properties = FpgaSettingsParser.LoadSettings(project, fpga!);
         var useWsl = bool.Parse(properties.GetValueOrDefault(CologneChipConstantService.CologneChipSettingsUseWsl) ?? "false");
         
@@ -117,10 +118,10 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         switch (toolchain)
         {
             case "p_r": 
-                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
+                 bitStreamPath = $"{CologneChipConstantService.GetInstance.GetBuildPath(project.RelativePath)}{topName}_00.cfg.bit";
                 break;
             case "nextpnr":
-                 bitStreamPath = $"{CologneChipConstantService.Instance.GetBuildPath(project.RelativePath)}{topName}.bit";
+                 bitStreamPath = $"{CologneChipConstantService.GetInstance.GetBuildPath(project.RelativePath)}{topName}.bit";
                 break;
         }
         
@@ -166,7 +167,7 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         if (!useWsl)
         {
             // C:\Users\sebas\OneWareStudio\Packages\NativeTools\colognechip\cc-toolchain-win
-            var execPath = ResolveOpenFPGALoaderPath(project);
+            var execPath = ResolveOpenFpgaLoaderPath(project);
             
             await childProcessService.ExecuteShellAsync(execPath, fpgaArgs,
             outputDir, "Running OpenFPGALoader (Short-Term)...", AppState.Loading, true);
@@ -181,7 +182,7 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
         }
     }
     
-    protected virtual string ResolveOpenFPGALoaderPath(UniversalFpgaProjectRoot project)
+    protected virtual string ResolveOpenFpgaLoaderPath(UniversalFpgaProjectRoot project)
     {
         var src = ContainerLocator.Container.Resolve<CcSettingsService>()
             .GetSetting(CologneChipConstantService.YosysSourceSettingsKey, project);

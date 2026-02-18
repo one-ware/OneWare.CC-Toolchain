@@ -1,17 +1,15 @@
 using Avalonia.Media;
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Helpers;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;
 
 public class CologneChipService(
     IChildProcessService childProcessService,
-    ILogger logger,
     IOutputService outputService,
-    IDockService dockService,
     ISettingsService settingsService)
 {
     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
@@ -27,7 +25,7 @@ public class CologneChipService(
         };
     }
 
-    public async Task<bool> PrAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    public async Task<bool> PrAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
         return toolchain switch
@@ -40,7 +38,7 @@ public class CologneChipService(
         };
     }
     
-    public async Task<bool> PackAysnc(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
+    public async Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var toolchain = settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey);
         return toolchain switch
@@ -141,8 +139,8 @@ public class CologneChipService(
             settingsService.GetSettingValue<string>(CologneChipConstantService.ToolChainSettingsKey)})\n===============");
         
         var success = await SynthAsync(project, fpga);
-        success &= await PrAysnc(project, fpga);
-        success &= await PackAysnc(project, fpga);
+        success &= await PrAsync(project, fpga);
+        success &= await PackAsync(project, fpga);
         
         var endTime = DateTime.Now - start;
         if (success)

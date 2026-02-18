@@ -1,4 +1,5 @@
 using Avalonia.Styling;
+using Microsoft.Extensions.Logging;
 using OneWare.Essentials.Models;
 using OneWare.GhdlExtension.Services;
 
@@ -11,11 +12,10 @@ using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
-using Prism.Ioc;
 
 public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
 {
-    protected readonly IDockService Dock;
+    protected readonly IMainDockService Dock;
     protected readonly IChildProcessService Proc;
     protected readonly ILogger Log;
     protected readonly IOutputService Out;
@@ -23,7 +23,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
 
     protected CcCompileStrategyBase()
     {
-        Dock     = ContainerLocator.Container.Resolve<IDockService>();
+        Dock     = ContainerLocator.Container.Resolve<IMainDockService>();
         Proc     = ContainerLocator.Container.Resolve<IChildProcessService>();
         Log      = ContainerLocator.Container.Resolve<ILogger>();
         Out      = ContainerLocator.Container.Resolve<IOutputService>();
@@ -35,7 +35,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         try
         {
             var properties = FpgaSettingsParser.LoadSettings(project, fpgaModel.Fpga.Name);
-            var topHeader  = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
+            var topHeader  = project.TopEntity ?? throw new Exception("TopEntity not set!");
             var (topName, topLang) = SplitTop(topHeader);
 
             var buildDir = Path.Combine(project.FullPath, "build");
@@ -50,12 +50,17 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
                 preSynthVerilog = await PreSynthesizeVhdlToVerilogAsync(project, topName, topHeader);
                 if (preSynthVerilog is null) return false;
             }
-
+            
+            /*
             var included = project.Files
                 .Where(f => GetIncludedExtensions(topLang).Contains(f.Extension))
                 .Where(f => !project.CompileExcluded.Contains(f))
                 .Where(f => !project.TestBenches.Contains(f))
-                .Select(f => $"./../{f.RelativePath}");
+                .Select(f => $"./../{f.RelativePath}"); */
+            
+            var included = project.GetFiles("*.v").Concat(project.GetFiles("*.sv"))
+                .Where(x => !project.IsCompileExcluded(x))
+                .Where(x => !project.IsTestBench(x));
 
             var yosysFlags = (properties.GetValueOrDefault("yosysToolchainYosysFlags") ?? string.Empty)
                 .Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
@@ -90,11 +95,14 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     public async Task<bool> PrAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var start = DateTime.Now;
-        var topHeader  = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
+        var properties = FpgaSettingsParser.LoadSettings(project, fpgaModel.Fpga.Name);
+        var ccDevice = properties.GetValueOrDefault(CologneChipConstantService.DeviceFpgaSettingsKey) 
+                       ?? CologneChipConstantService.DeviceFpgaSettingsDefault;
+        var topHeader  = project.TopEntity ?? throw new Exception("TopEntity not set!");
         var (topName, topLang) = SplitTop(topHeader);
 
         var ccfFile = CologneChipSettingsHelper.GetConstraintFile(project);
-        var (exe, args) = BuildPrCommand(topName, topLang, ccfFile);
+        var (exe, args) = BuildPrCommand(topName, topLang, ccfFile, ccDevice);
         
         var success = (await Proc.ExecuteShellAsync(exe, args,
             $"{project.FullPath}/build", $"Running P_R...", AppState.Loading, true, null, s =>
@@ -119,7 +127,7 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         string topName, string topLang, string topHeader, string yosysSynthTool, string? preSynthVerilog);
 
     protected abstract (string exe, List<string> args) BuildPrCommand(
-        string topName, string topLang, string ccfFile);
+        string topName, string topLang, string ccfFile, string device);
 
     protected virtual IEnumerable<string> GetIncludedExtensions(string topLang) =>
         topLang == "v" ? new[] { ".v", ".sv" } : Array.Empty<string>();
@@ -192,28 +200,25 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
     protected async Task<string?> PreSynthesizeVhdlToVerilogAsync(
         UniversalFpgaProjectRoot project, string topName, string topHeader)
     {
-        var buildDir = Path.Combine(project.FullPath, "build");
+        // var buildDir = Path.Combine(project.FullPath, "build");
 
-        var vhdlFiles = project.Files
-            .Where(f => GetVhdlExtensions().Contains(f.Extension))
-            .Where(f => !project.CompileExcluded.Contains(f))
-            .Where(f => !project.TestBenches.Contains(f))
-            .Select(f => $"./../{f.RelativePath}")
-            .ToList();
+        var included = project.GetFiles("*.v").Concat(project.GetFiles("*.sv"))
+            .Where(x => !project.IsCompileExcluded(x))
+            .Where(x => !project.IsTestBench(x));
         
-        if (vhdlFiles.Count == 0)
+        if (!included.Any())
         {
             Log.Error("No VHDL sources found for external GHDL synthesis.");
             return null;
         }
+
+        if (project.TopEntity == null)
+            throw new Exception($"Could not find matching operation for object type: {project.GetType().Name}");
         
-        if (project.TopEntity is IProjectFile projectFile)
-        {
-            await ContainerLocator.Container.Resolve<GhdlService>().SynthAsync(projectFile,"verilog", "build" );
-            return $"{topName}.v";
-        }
-        
-        throw new Exception($"Could not find matching operation for object type: {project.GetType().Name}");
+        await ContainerLocator.Container.Resolve<GhdlService>()
+            .SynthAsync(Path.Combine(project.FullPath, project.TopEntity), "verilog", "build");
+        return $"{topName}.v";
+
     }
     
     protected virtual IEnumerable<string> GetVhdlExtensions() => new[] { ".vhd", ".vhdl" };

@@ -1,12 +1,12 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 using OneWare.Essentials.Services;
 using OneWare.CologneChip.Views;
 using OneWare.UniversalFpgaProjectSystem.Fpga;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Services;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.ViewModels;
 
@@ -25,9 +25,9 @@ public class CologneChipLoaderWindowExtensionViewModel : ObservableObject
         _windowService = windowService;
         _projectRoot = projectRoot;
         
-        _fpga = fpgaService.FpgaPackages.FirstOrDefault(x => x.Name == projectRoot.GetProjectProperty("Fpga"))?.LoadFpga();
-
-        IsVisible = projectRoot.Loader is CologneChipLoader;
+        _fpga = fpgaService.FpgaPackages.FirstOrDefault(x => x.Name == projectRoot.Properties.GetString("Fpga"))?.LoadFpga();
+        
+        IsVisible = projectRoot.Loader is "cologneChipLoader";
         IsEnabled = _fpga != null;
     }
 

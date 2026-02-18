@@ -7,7 +7,7 @@ namespace OneWare.CologneChip.Services;
 
 public class CcUtilsService(IPackageService packageService, ISettingsService settingsService, IApplicationStateService applicationStateService, ICcCustomLogger logger)
 {
-    private async Task<(bool success, bool needsRestart)> InstallDependenciesAsync()
+    private Task<(bool success, bool needsRestart)> InstallDependenciesAsync()
 	{
 		ApplicationProcess checkProc = applicationStateService.AddState("Checking dependencies", AppState.Loading);
 		
@@ -25,7 +25,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 
 		foreach ((string dependencyId, Version minVersion) in dependencyIDs)
 		{
-			PackageModel? dependencyModel = packageService.Packages.GetValueOrDefault(dependencyId);
+			IPackageState? dependencyModel = packageService.Packages.GetValueOrDefault(dependencyId);
 			Package? dependencyPackage = dependencyModel?.Package;
 
 			if (dependencyPackage == null)
@@ -54,13 +54,9 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 					// If the version is not compatible or the download fails, try the previous version
 					foreach (PackageVersion packageVersion in dependencyPackage.Versions!.Reverse())
 					{
-						// Skip incompatible versions
-						if (!(await dependencyModel!.CheckCompatibilityAsync(packageVersion)).IsCompatible)
-						{
-							continue;
-						}
+						
 
-						PackageVersion? installedVersion = dependencyModel.InstalledVersion;
+						PackageVersion? installedVersion = dependencyModel?.InstalledVersion;
 
 						if (installedVersion == packageVersion)
 						{
@@ -73,7 +69,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 							break;
 						}
 
-						localSuccess = await dependencyModel.DownloadAsync(packageVersion);
+						// localSuccess = await dependencyModel.DownloadAsync(packageVersion);
 
 						// Stop trying, if install has been successful
 						if (localSuccess)
@@ -141,6 +137,6 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 
 		applicationStateService.RemoveState(checkProc);
 
-		return (globalSuccess, restartRequired);
+		return Task.FromResult((globalSuccess, restartRequired));
 	}
 }
