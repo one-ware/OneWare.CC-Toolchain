@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.Styling;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Helpers;
 using OneWare.CologneChip.Services;
 using OneWare.CologneChip.ViewModels;
@@ -12,26 +14,24 @@ using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
 using OneWare.Essentials.ViewModels;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using Prism.Ioc;
-using Prism.Modularity;
 using OneWare.UniversalFpgaProjectSystem.Services;
 
 namespace OneWare.CologneChip;
 
-public class OneWareCologneChipModule : IModule
+public class OneWareCologneChipModule : OneWareModuleBase
 {
-    public void RegisterTypes(IContainerRegistry containerRegistry)
+    public override void RegisterServices(IServiceCollection containerRegistry)
     {
-        containerRegistry.RegisterSingleton<CologneChipService>();
-        containerRegistry.RegisterSingleton<CcProprietaryCompileStrategy>();
-        containerRegistry.RegisterSingleton<CcNextpnrCompileStrategy>();
-        containerRegistry.RegisterSingleton<CcSettingsService>();
-        containerRegistry.RegisterSingleton<CcUtilsService>();
+        containerRegistry.AddSingleton<CologneChipService>();
+        containerRegistry.AddSingleton<CcProprietaryCompileStrategy>();
+        containerRegistry.AddSingleton<CcNextpnrCompileStrategy>();
+        containerRegistry.AddSingleton<CcSettingsService>();
+        containerRegistry.AddSingleton<CcUtilsService>();
         
-        containerRegistry.RegisterSingleton<ICcCustomLogger, CcCustomLogger>();
+        // containerRegistry.AddSingleton<ICcCustomLogger, CcCustomLogger>();
     }
     
-    public void OnInitialized(IContainerProvider containerProvider)
+    public override void Initialize(IServiceProvider containerProvider)
     {
         var settingsService = containerProvider.Resolve<ISettingsService>();
         var projectExplorerService = containerProvider.Resolve<IProjectExplorerService>();
@@ -53,7 +53,7 @@ public class OneWareCologneChipModule : IModule
                 if (ccf.Root is UniversalFpgaProjectRoot universalFpgaProjectRoot)
                 {
                     if (CologneChipSettingsHelper.GetConstraintFile(universalFpgaProjectRoot) == ccf.RelativePath) {
-                        l.Add(new MenuItemViewModel("ccf")
+                        l.Add(new MenuItemModel("ccf")
                         {
                             Header = "Unset as Projects Constraint File",
                             Command = new AsyncRelayCommand(() => CologneChipSettingsHelper.UpdateProjectProperties(ccf)),
@@ -61,18 +61,17 @@ public class OneWareCologneChipModule : IModule
                     }
                     else
                     {
-                        l.Add(new MenuItemViewModel("ccf")
+                        l.Add(new MenuItemModel("ccf")
                         {
                             Header = "Set as Projects Constraint File",
                             Command = new AsyncRelayCommand(() => CologneChipSettingsHelper.UpdateProjectProperties(ccf)),
-                            
                         });
                     }
                 }
             }
         });
         
-        containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_DownloaderConfigurationExtension", new UiExtension(x =>
+        containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_DownloaderConfigurationExtension", new OneWareUiExtension(x =>
         {
             if (x is not UniversalFpgaProjectRoot cm) return null;
             return new CologneChipLoaderWindowExtensionView()
@@ -84,6 +83,7 @@ public class OneWareCologneChipModule : IModule
         
         containerProvider.Resolve<FpgaService>().RegisterToolchain<CologneChipToolchain>();
         containerProvider.Resolve<FpgaService>().RegisterLoader<CologneChipLoader>();
+        
         containerProvider.Resolve<IProjectExplorerService>().Projects.CollectionChanged += CologneChipSettingsHelper.OnCollectionChanged;
         containerProvider.Resolve<IPackageService>().RegisterPackage(CologneChipConstantService.CologneChipPackage);
         
@@ -154,10 +154,10 @@ public class OneWareCologneChipModule : IModule
         
         
         containerProvider.Resolve<IWindowService>().RegisterUiExtension("UniversalFpgaToolBar_CompileMenuExtension",
-            new UiExtension(
+            new OneWareUiExtension(
                 x =>
                 {
-                    if (x is not UniversalFpgaProjectRoot { Toolchain: CologneChipToolchain } root) return null;
+                    if (x is not UniversalFpgaProjectRoot { Toolchain: "cologneChip" } root) return null;
 
                     var name = root.Properties["Fpga"]?.ToString();
                     var fpgaPackage = fpgaService.FpgaPackages.FirstOrDefault(obj => obj.Name == name);

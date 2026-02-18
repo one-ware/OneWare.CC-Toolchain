@@ -1,9 +1,9 @@
 using Avalonia.Media;
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Helpers;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;
 
@@ -11,7 +11,7 @@ public class CologneChipService(
     IChildProcessService childProcessService,
     ILogger logger,
     IOutputService outputService,
-    IDockService dockService,
+    IMainDockService dockService,
     ISettingsService settingsService)
 {
     public async Task<bool> SynthAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)

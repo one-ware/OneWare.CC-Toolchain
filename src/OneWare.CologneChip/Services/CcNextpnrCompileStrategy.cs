@@ -5,7 +5,6 @@ using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
-using Prism.Ioc;
 
 namespace OneWare.CologneChip.Services;
 
@@ -57,7 +56,7 @@ public class CcNextpnrCompileStrategy : CcCompileStrategyBase
     public override async Task<bool> PackAsync(UniversalFpgaProjectRoot project, FpgaModel fpgaModel)
     {
         var start = DateTime.Now;
-        var (topName, _) = SplitTop(project.TopEntity?.Header ?? throw new Exception("TopEntity not set!"));
+        var (topName, _) = SplitTop(project.TopEntity ?? throw new Exception("TopEntity not set!"));
 
         var (success, _) = await ExecWithOutput(
             "gmpack",

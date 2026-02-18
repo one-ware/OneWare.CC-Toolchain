@@ -1,11 +1,10 @@
+using Microsoft.Extensions.Logging;
 using OneWare.CologneChip.Services;
 using OneWare.Essentials.Enums;
 using OneWare.Essentials.Services;
 using OneWare.UniversalFpgaProjectSystem.Models;
 using OneWare.UniversalFpgaProjectSystem.Parser;
 using OneWare.UniversalFpgaProjectSystem.Services;
-using Prism.Ioc;
-using ILogger = OneWare.Essentials.Services.ILogger;
 
 namespace OneWare.CologneChip;
 
@@ -13,6 +12,8 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
     : IFpgaLoader
 {
     public string Name => "CologneChip";
+    
+    public string Id => "cologneChip";
     
     private enum ProgrammerState
     {
@@ -102,11 +103,11 @@ public class CologneChipLoader(IChildProcessService childProcessService, ISettin
     public async Task DownloadAsync(UniversalFpgaProjectRoot project)
     {
         
-        var top = project.TopEntity?.Header ?? throw new Exception("TopEntity not set!");
+        var top = project.TopEntity ?? throw new Exception("TopEntity not set!");
         var topName = top.Split(".").First();
         var outputDir = project.FullPath;
         
-        var fpga = project.GetProjectProperty("Fpga");
+        var fpga = project.Properties.GetString("fpga");
         var properties = FpgaSettingsParser.LoadSettings(project, fpga!);
         var useWsl = bool.Parse(properties.GetValueOrDefault(CologneChipConstantService.CologneChipSettingsUseWsl) ?? "false");
         

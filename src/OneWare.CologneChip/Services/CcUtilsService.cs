@@ -25,7 +25,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 
 		foreach ((string dependencyId, Version minVersion) in dependencyIDs)
 		{
-			PackageModel? dependencyModel = packageService.Packages.GetValueOrDefault(dependencyId);
+			IPackageState? dependencyModel = packageService.Packages.GetValueOrDefault(dependencyId);
 			Package? dependencyPackage = dependencyModel?.Package;
 
 			if (dependencyPackage == null)
@@ -54,11 +54,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 					// If the version is not compatible or the download fails, try the previous version
 					foreach (PackageVersion packageVersion in dependencyPackage.Versions!.Reverse())
 					{
-						// Skip incompatible versions
-						if (!(await dependencyModel!.CheckCompatibilityAsync(packageVersion)).IsCompatible)
-						{
-							continue;
-						}
+						
 
 						PackageVersion? installedVersion = dependencyModel.InstalledVersion;
 
@@ -73,7 +69,7 @@ public class CcUtilsService(IPackageService packageService, ISettingsService set
 							break;
 						}
 
-						localSuccess = await dependencyModel.DownloadAsync(packageVersion);
+						// localSuccess = await dependencyModel.DownloadAsync(packageVersion);
 
 						// Stop trying, if install has been successful
 						if (localSuccess)
