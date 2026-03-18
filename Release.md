@@ -1,5 +1,8 @@
 # OneWare.CologneChip
 
+## Release 1.0.1
+- Support for OWS < 1.0.3 
+
 ## Release 1.0.0
 - Support OWS 1.x.x
 
