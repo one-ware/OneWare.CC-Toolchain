@@ -91,6 +91,14 @@
           "target": "all"
         }
       ]
+    },
+    {
+      "version": "1.0.1",
+      "targets": [
+        {
+          "target": "all"
+        }
+      ]
     }
   ]
 }
