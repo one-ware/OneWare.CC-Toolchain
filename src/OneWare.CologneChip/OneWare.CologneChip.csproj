@@ -15,8 +15,9 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="OneWare.Essentials" Version="1.0.10" Private="false" ExcludeAssets="runtime;Native" />
-        <PackageReference Include="OneWare.UniversalFpgaProjectSystem" Version="1.0.10" Private="false" ExcludeAssets="runtime;Native" />
+        <PackageReference Include="OneWare.Essentials" Version="1.0.17" Private="false" ExcludeAssets="runtime;Native" />
+        <PackageReference Include="OneWare.OssCadSuiteIntegration" Version="1.0.17" Private="false" />
+        <PackageReference Include="OneWare.UniversalFpgaProjectSystem" Version="1.0.17" Private="false" ExcludeAssets="runtime;Native" />
         <PackageReference Include="OneWare.GhdlExtension" Version="1.0.0" Private="true" ExcludeAssets="runtime;Native"/>
     </ItemGroup>
 
