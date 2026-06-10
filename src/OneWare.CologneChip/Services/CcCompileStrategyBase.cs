@@ -1,7 +1,6 @@
 using Avalonia.Styling;
 using Microsoft.Extensions.Logging;
 using OneWare.Essentials.Models;
-using OneWare.GhdlExtension.Services;
 
 namespace OneWare.CologneChip.Services;
 
@@ -215,8 +214,9 @@ public abstract class CcCompileStrategyBase : ICologneChipCompileStrategy
         if (project.TopEntity == null)
             throw new Exception($"Could not find matching operation for object type: {project.GetType().Name}");
         
+        /*
         await ContainerLocator.Container.Resolve<GhdlService>()
-            .SynthAsync(Path.Combine(project.FullPath, project.TopEntity), "verilog", "build");
+            .SynthAsync(Path.Combine(project.FullPath, project.TopEntity), "verilog", "build");*/
         return $"{topName}.v";
 
     }

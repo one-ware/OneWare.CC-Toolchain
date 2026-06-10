@@ -1,9 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DynamicData.Binding;
+using OneWare.CologneChip.Templates;
+using OneWare.Essentials.Controls;
 using OneWare.Essentials.Enums;
 using OneWare.Essentials.Models;
 using OneWare.Essentials.PackageManager;
@@ -11,13 +16,17 @@ using OneWare.Essentials.PackageManager.Compatibility;
 using OneWare.Essentials.Services;
 using OneWare.Essentials.ViewModels;
 using OneWare.OssCadSuiteIntegration.Helpers;
+using OneWare.UniversalFpgaProjectSystem;
+using OneWare.UniversalFpgaProjectSystem.ViewModels;
+using OneWare.UniversalFpgaProjectSystem.Views;
 
 namespace OneWare.CologneChip.ViewModels;
 
-public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
+public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDisposable
 {
     private readonly IHttpService _httpService;
     private readonly IPackageService _packageService;
+    private readonly IWindowService _windowService;
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -30,18 +39,20 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
 
     private CancellationTokenSource? _installCts;
     
-    public CologneChipSetupViewModel(IHttpService httpService, IPackageService packageService)
+    public CologneChipSetupViewModel(IHttpService httpService, IPackageService packageService, IWindowService windowService)
     {
         _httpService =  httpService;
         _packageService = packageService;
+        _windowService = windowService;
         CancelCommand = new RelayCommand<object>(Cancel);
         InstallCommand = new AsyncRelayCommand<object>(InstallAsync);
         AttachedToVisualTreeCommand = new AsyncRelayCommand(AttachedToVisualTreeAsync);
+        _packageService.PackagesUpdated += PackagesUpdated;
     }
     
     public string Header { get; } = "Welcome to Cologne Chip";
     public string Description { get; } = "Get started with One Ware Studio and the Cologne Chip plugin by installing the required packages.";
-    public ObservableCollection<IPackageState> RequiredPackages { get; } = [];
+    public ObservableCollection<PackageViewModel> RequiredPackages { get; } = [];
     
     public ICommand AttachedToVisualTreeCommand { get; }
     public ICommand CancelCommand { get; }
@@ -51,7 +62,7 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
     {
         get;
         set => SetProperty(ref field, value);
-    }
+    } = true;
     public bool LoadingFailed
     {
         get;
@@ -62,9 +73,31 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
         get;
         set => SetProperty(ref field, value);
     }
+
+    public bool PackagesAlreadyInstalled
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
     public bool CanInstall => !IsLoading && !LoadingFailed;
 
-    private async Task AttachedToVisualTreeAsync()
+    public override bool OnWindowClosing(FlexibleWindow window)
+    {
+        _installCts?.Cancel();
+        return base.OnWindowClosing(window);
+    }
+    
+    public void Dispose()
+    {
+        _packageService.PackagesUpdated -= PackagesUpdated;
+        _installCts?.Dispose();
+    }
+    
+    private void PackagesUpdated(object? sender, EventArgs e)
+    {
+        _ = InitializeAsync();
+    }
+    private async Task InitializeAsync()
     {
         IsLoading = true;
         
@@ -74,11 +107,17 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
             var package = JsonSerializer.Deserialize<Package>(downloadManifest!, _serializerOptions);
             if (package == null)
                 throw new Exception();
-            
-            RequiredPackages.Add(_packageService.Packages[OssCadSuiteHelper.OssCadPackage.Id!]);
-            RequiredPackages.Add(_packageService.Packages[package.Id!]);
+
+            List<Package> requiredPackages = [package, OssCadSuiteHelper.OssCadPackage];
+            foreach (var pk in requiredPackages)
+            {
+                PackageViewModel vm = new(pk, _packageService.Packages[pk.Id!]);
+                await vm.InitializeAsync(_packageService);
+                RequiredPackages.Add(vm);
+            }
+            PackagesAlreadyInstalled = RequiredPackages.All(x => x.State.Status is PackageStatus.Installed);
         }
-        catch
+        catch (Exception ex)
         {
             LoadingFailed = true;
         }
@@ -89,10 +128,20 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
         }
     }
 
-    private void AddPackage(Package package)
+    private async Task AttachedToVisualTreeAsync()
     {
-        RequiredPackages.Add(_packageService.Packages[package.Id!]);
+        // timeout, wait 10s to display an error
+        for (int i = 0; i < 10; i++)
+        {
+            if (!IsLoading || LoadingFailed)
+                return;
+
+            await Task.Delay(1000);
+        }
+        IsLoading = false;
+        LoadingFailed = true;
     }
+
     private void Cancel(object? parameter)
     {
         if (parameter is not Control control)
@@ -113,20 +162,29 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
         IsInstalling = true;
 
         bool success = true;
-        bool cancellationRequested;
-        
+        bool cancellationRequested = false;
+
         try
         {
             foreach (var package in RequiredPackages)
             {
                 _installCts.Token.ThrowIfCancellationRequested();
-                var result = await _packageService.InstallAsync(package.Package, null, false, false, _installCts.Token);
+                var result = await package.InstallAsync(_packageService, _installCts.Token);
+                
+                success = result.Status is PackageInstallResultReason.AlreadyInstalled
+                    or PackageInstallResultReason.Installed;
                 
                 if (!success)
-                    continue;
-                
-                success = result.Status is PackageInstallResultReason.AlreadyInstalled or PackageInstallResultReason.Installed;
+                {
+                    cancellationRequested = _installCts.Token.IsCancellationRequested;
+                    break;
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            cancellationRequested = true;
+            success = false;
         }
         catch
         {
@@ -135,7 +193,6 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
         finally
         {
             IsInstalling = false;
-            cancellationRequested = _installCts.IsCancellationRequested;
             _installCts?.Dispose();
             _installCts = null;
         }
@@ -145,6 +202,65 @@ public class CologneChipSetupViewModel : FlexibleWindowViewModelBase
             await ContainerLocator.Container.Resolve<IWindowService>().ShowMessageAsync("Installation failed",
                 "Please try again later or check for OneWare Studio updates", MessageBoxIcon.Error);
         }
-        Cancel(control);
+        
+        Window? wd = TopLevel.GetTopLevel(control) as Window;
+        wd?.Close();
+
+        // open the fpga template dialog with the cologne chip template as default
+        var dataContext = ContainerLocator.Container.Resolve<UniversalFpgaProjectCreatorViewModel>();
+        dataContext.SettingsCollection.SettingModels
+            .OfType<TitledSetting>()
+            .First(x => string.Equals(x.Title, "template", StringComparison.OrdinalIgnoreCase)).Value 
+                = VerilogBlinkSimulationCcTemplate.TemplateName;
+        await _windowService.ShowDialogAsync(new UniversalFpgaProjectCreatorView
+        {
+            DataContext = dataContext
+        });
+    }
+}
+
+public sealed class PackageViewModel : ObservableObject
+{
+    public PackageViewModel(Package package, IPackageState packageState)
+    {
+        Package = package;
+        State = packageState;
+    }
+    public Package Package { get; }
+    public IPackageState State { get; }
+    
+    public IImage? Image
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    public int Progress
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public async Task InitializeAsync(IPackageService packageService)
+    {
+        Image = await packageService.DownloadPackageIconAsync(Package);
+    }
+
+    public async Task<PackageInstallResult> InstallAsync(IPackageService packageService, CancellationToken cancellationToken)
+    {
+        IDisposable? subscription = null;
+            
+        try
+        {
+            subscription = State
+                .WhenValueChanged(x => x.Progress)
+                .Subscribe(x => Progress = (int)(x * 100));
+
+            return await packageService.InstallAsync(Package, null, false, false, cancellationToken);
+        }
+        finally
+        {
+            subscription?.Dispose();
+        }
     }
 }
