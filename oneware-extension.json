@@ -1,100 +1,36 @@
 {
-  "category": "Toolchains",
+  "category": "Tools",
   "type": "Plugin",
-  "name": "CologneChip Extension",
+  "name": "GateMate™ Quick-Start",
   "id": "OneWare.CologneChip",
-  "description": "CologneChip-Toolchain for OneWare",
+  "description": "Quick-Start extension to setup Toolchain and Hardware Support for GateMate™ by CologneChip",
   "license": "MIT",
   "urlLaunchIds": "colognechip",
-  "iconUrl": "https://raw.githubusercontent.com/swittlich/OneWare.CC-Toolchain/main/Icon.png",
+  "iconUrl": "https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/main/Icon.png",
   "tabs": [
     {
       "title": "Readme",
-      "contentUrl": "https://raw.githubusercontent.com/swittlich/OneWare.CC-Toolchain/main/Extension.md"
+      "contentUrl": "https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/main/Extension.md"
     },
     {
       "title": "License",
-      "contentUrl": "https://raw.githubusercontent.com/swittlich/OneWare.CC-Toolchain/main/License.md"
+      "contentUrl": "https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/main/License.md"
     },
     {
       "title": "Release Notes",
-      "contentUrl": "https://raw.githubusercontent.com/swittlich/OneWare.CC-Toolchain/main/Release.md"
+      "contentUrl": "https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/main/Release.md"
     }
   ],
   "links": [
     {
       "name": "Github",
-      "url": "https://github.com/swittlich/OneWare.CC-Toolchain"
+      "url": "https://github.com/one-ware/OneWare.CC-Toolchain"
     }
   ],
-  "sourceUrl": "https://github.com/swittlich/OneWare.CC-Toolchain/releases/download",
+  "sourceUrl": "https://github.com/one-ware/OneWare.CC-Toolchain/releases/download",
   "versions": [
     {
-      "version": "0.1",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.2",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.3",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.4",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.5",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.6",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "0.7.1",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "1.0.0",
-      "targets": [
-        {
-          "target": "all"
-        }
-      ]
-    },
-    {
-      "version": "1.0.1",
+      "version": "1.0",
       "targets": [
         {
           "target": "all"
