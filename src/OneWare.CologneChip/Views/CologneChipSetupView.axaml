@@ -107,9 +107,16 @@
                 </ScrollViewer>
                 <controls:Spinner IsVisible="{Binding IsLoading}" Width="32" Height="32"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <TextBlock Text="Oops, something went wrong. Please try again later." Opacity=".5"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           IsVisible="{Binding LoadingFailed}"/>
+                <StackPanel IsVisible="{Binding LoadingFailed}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Orientation="Vertical" Spacing="8">
+                    <TextBlock Text="Oops, something went wrong." Opacity=".5"
+                               HorizontalAlignment="Center"/>
+                    <Button HorizontalAlignment="Center" CornerRadius="4"
+                            Command="{Binding TryAgainCommand}">
+                        <TextBlock Text="Try Again"/>
+                    </Button>
+                </StackPanel>
             </Panel>
         </Border>
         

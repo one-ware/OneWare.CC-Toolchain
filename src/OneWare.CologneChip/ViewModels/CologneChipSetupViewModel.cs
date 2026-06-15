@@ -47,6 +47,7 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
         CancelCommand = new RelayCommand<object>(Cancel);
         InstallCommand = new AsyncRelayCommand<object>(InstallAsync);
         AttachedToVisualTreeCommand = new AsyncRelayCommand(AttachedToVisualTreeAsync);
+        TryAgainCommand = new AsyncRelayCommand(TryAgainAsync);
         _packageService.PackagesUpdated += PackagesUpdated;
     }
     
@@ -57,6 +58,7 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
     public ICommand AttachedToVisualTreeCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand InstallCommand { get; }
+    public ICommand TryAgainCommand { get; }
 
     public bool IsLoading
     {
@@ -100,6 +102,8 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
     private async Task InitializeAsync()
     {
         IsLoading = true;
+
+        await Task.Delay(50);
         
         try
         {
@@ -140,6 +144,13 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
         }
         IsLoading = false;
         LoadingFailed = true;
+    }
+
+    private async Task TryAgainAsync()
+    {
+        LoadingFailed = false;
+        RequiredPackages.Clear();
+        await InitializeAsync();
     }
 
     private void Cancel(object? parameter)
