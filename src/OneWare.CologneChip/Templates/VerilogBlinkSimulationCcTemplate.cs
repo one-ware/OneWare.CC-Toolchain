@@ -20,11 +20,13 @@ public class VerilogBlinkSimulationCcTemplate(ILogger logger, IMainDockService m
             TemplateHelper.CopyDirectoryAndReplaceString(path, root.FullPath, ("%PROJECTNAME%", name));
             var file = root.AddFile(name + ".v");
             
-            root.TopEntity = file.RelativePath;
+            root.TopEntity = name;
             
             var file2 = root.AddFile(name + "_tb.v");
 
             root.AddTestBench(file2.RelativePath);
+
+            root.Board = "GateMate FPGA Evaluation Board";
             
             _ = mainDockService.OpenFileAsync(file.FullPath);
             _ = mainDockService.OpenFileAsync(file2.FullPath);

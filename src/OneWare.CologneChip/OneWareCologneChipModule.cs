@@ -1,3 +1,4 @@
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -13,45 +14,42 @@ namespace OneWare.CologneChip;
 
 public class OneWareCologneChipModule : OneWareModuleBase
 {
-    private const string FirstInstallSettingKey = "CologneChip_FirstInstall";
-    
     public override void RegisterServices(IServiceCollection containerRegistry)
     {
         
     }
-    
+
     public override void Initialize(IServiceProvider containerProvider)
     {
         var fpgaService = containerProvider.Resolve<FpgaService>();
         fpgaService.RegisterTemplate<VerilogBlinkSimulationCcTemplate>();
         
-        var settingsService = containerProvider.Resolve<ISettingsService>();
-        settingsService.Register(FirstInstallSettingKey, true);
-        
-        if (settingsService.GetSettingValue<bool>(FirstInstallSettingKey))
+        var applicationStateService = containerProvider.Resolve<IApplicationStateService>();
+
+        applicationStateService.RegisterUrlLaunchAction("colognechip", x =>
         {
-            _ = Dispatcher.UIThread.InvokeAsync(async() =>
+            if (x is "/setup")
             {
-                var windowService = containerProvider.Resolve<IWindowService>();
-                var packageService = containerProvider.Resolve<IPackageService>();
-                var httpService = containerProvider.Resolve<IHttpService>();
-                var dataContext = new CologneChipSetupViewModel(httpService, packageService, windowService);
-
-                try
+                _ = Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    await windowService.ShowDialogAsync(new CologneChipSetupView()
+                    var windowService = containerProvider.Resolve<IWindowService>();
+                    var packageService = containerProvider.Resolve<IPackageService>();
+                    var httpService = containerProvider.Resolve<IHttpService>();
+                    var dataContext = new CologneChipSetupViewModel(httpService, packageService, windowService);
+
+                    try
                     {
-                        DataContext = dataContext,
-                    });
-
-                    //set the variable to not show it again in the future
-                    settingsService.SetSettingValue(FirstInstallSettingKey, false);
-                }
-                finally
-                {
-                    dataContext.Dispose();
-                }
-            });
-        }
+                        await windowService.ShowDialogAsync(new CologneChipSetupView()
+                        {
+                            DataContext = dataContext,
+                        });
+                    }
+                    finally
+                    {
+                        dataContext.Dispose();
+                    }
+                });
+            }
+        });
     }
 }
