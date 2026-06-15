@@ -1,4 +1,4 @@
- ![Icon](https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/refs/heads/main/Icon.png)
+ ![Icon](https://www.colognechip.com/wp-content/uploads/cropped-cologne_chip_logocmyk.png)
  
 Extension for GateMate™ FPGAs. Helps you get started with GateMate™ faster.
 

@@ -34,9 +34,6 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
         WriteIndented = true
     };
 
-    private const string GateMateDataUrl = 
-        "https://raw.githubusercontent.com/swittlich/OneWare.GateMate/main/oneware-package.json";
-
     private CancellationTokenSource? _installCts;
     
     public CologneChipSetupViewModel(IHttpService httpService, IPackageService packageService, IWindowService windowService)
@@ -48,7 +45,7 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
         InstallCommand = new AsyncRelayCommand<object>(InstallAsync);
         AttachedToVisualTreeCommand = new AsyncRelayCommand(AttachedToVisualTreeAsync);
         TryAgainCommand = new AsyncRelayCommand(TryAgainAsync);
-        _packageService.PackagesUpdated += PackagesUpdated;
+        _ = InitializeAsync();
     }
     
     public string Header { get; } = "Welcome to Cologne Chip";
@@ -91,28 +88,25 @@ public sealed class CologneChipSetupViewModel : FlexibleWindowViewModelBase, IDi
     
     public void Dispose()
     {
-        _packageService.PackagesUpdated -= PackagesUpdated;
         _installCts?.Dispose();
     }
     
-    private void PackagesUpdated(object? sender, EventArgs e)
-    {
-        _ = InitializeAsync();
-    }
     private async Task InitializeAsync()
     {
         IsLoading = true;
 
-        await Task.Delay(50);
+        if(!_packageService.IsLoaded)
+            await _packageService.RefreshAsync();
         
         try
         {
-            var downloadManifest = await _httpService.DownloadTextAsync(GateMateDataUrl);
-            var package = JsonSerializer.Deserialize<Package>(downloadManifest!, _serializerOptions);
-            if (package == null)
+            _packageService.Packages.TryGetValue("OneWare.GateMate", out var gateMateState);
+            
+            var gateMatePackage = gateMateState?.Package;
+            if (gateMatePackage == null)
                 throw new Exception();
 
-            List<Package> requiredPackages = [package, OssCadSuiteHelper.OssCadPackage];
+            List<Package> requiredPackages = [gateMatePackage, OssCadSuiteHelper.OssCadPackage];
             foreach (var pk in requiredPackages)
             {
                 PackageViewModel vm = new(pk, _packageService.Packages[pk.Id!]);
