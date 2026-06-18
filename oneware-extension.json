@@ -3,7 +3,7 @@
   "type": "Plugin",
   "name": "GateMate™ Quick-Start",
   "id": "OneWare.CologneChip",
-  "description": "Quick-Start extension to setup Toolchain and Hardware Support for GateMate™ by CologneChip",
+  "description": "Quick-Start extension to setup Hardware Support for GateMate™ by CologneChip",
   "license": "MIT",
   "urlLaunchIds": "colognechip",
   "iconUrl": "https://raw.githubusercontent.com/one-ware/OneWare.CC-Toolchain/main/Icon.png",
